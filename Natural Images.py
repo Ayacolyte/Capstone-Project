@@ -10,13 +10,25 @@ from torchvision import datasets, transforms
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+
 # Load CIFAR-10 training data
 cwd = os.getcwd()
 
+# Custom transformation: Convert an RGB tensor to grayscale and drop the channel dimension
+class ToGrayScale(torch.nn.Module):
+    def __init__(self):
+        super(ToGrayScale, self).__init__()
+
+    def forward(self, img):
+        # Use the formula to convert RGB image to grayscale
+        r, g, b = img[0], img[1], img[2]
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        return gray  # Return 2D tensor without channel dimension
 
 transform = transforms.Compose([
     transforms.ToTensor(),  # Convert images to PyTorch tensors
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize the images
+    ToGrayScale()
+    #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize the images
 ])
 
 cifar10_train = datasets.CIFAR10(root=cwd+'/data', train=True, download=True,transform=transform)
@@ -26,10 +38,24 @@ cifar10_test = datasets.CIFAR10(root=cwd+'/data', train=False, download=True,tra
 # ==============================================================================================================================
 # SECTION: Convert to Gray Scale
 # ==============================================================================================================================
-def rgb2gray(rgb):
-    r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
-    gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-    return gray
+
+
+def convert_img_to_numpy(data):
+    # load data
+    loader = torch.utils.data.DataLoader(data, batch_size=len(data),
+                                          shuffle=False)
+
+    # Extract all images and labels
+    images, _ = next(iter(loader))
+    # Remove the channel dimension and convert to numpy array
+    images_np = images.squeeze(1).numpy()
+
+    return images_np
+
+cifar10_train_np = convert_img_to_numpy(cifar10_train)
+cifar10_test_np = convert_img_to_numpy(cifar10_test)
+# Print the shape of the numpy array
+print(cifar10_train_np.shape)  # Should be (50000, 32, 32)
 
 # ==============================================================================================================================
 # SECTION: Visualise 1st 10 images to check data

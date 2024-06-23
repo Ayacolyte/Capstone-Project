@@ -55,7 +55,7 @@ def convert_img_to_numpy(data):
 cifar10_train_np = convert_img_to_numpy(cifar10_train)
 cifar10_test_np = convert_img_to_numpy(cifar10_test)
 # Print the shape of the numpy array
-print(cifar10_train_np.shape)  # Should be (50000, 32, 32)
+#print(cifar10_train_np.shape)  # Should be (50000, 32, 32)
 
 # ==============================================================================================================================
 # SECTION: Visualise 1st 10 images to check data
@@ -69,27 +69,27 @@ def imshow(img):
 # Plotting the images
 fig, axes = plt.subplots(1, 10, figsize=(15, 1.5))
 for i in range(10):
-    axes[i].imshow(np.transpose(cifar10_train[i][0].numpy(), (1, 2, 0)))
+    axes[i].imshow(cifar10_train[i][0].numpy())
     axes[i].set_title('Label: %s' % cifar10_train.classes[cifar10_train[i][1]])
     axes[i].axis('off')
 plt.show()
 
 
-cwd = os.getcwd()
-# Check if the directory exists where the file will be saved; create it if it does not exist
-save_path_train = cwd + '/train2017'
-save_path_train_label = cwd + '/train2017_label/'
-# List of all paths you need to check/create
-paths = [save_path_train, save_path_train_label]
+# cwd = os.getcwd()
+# # Check if the directory exists where the file will be saved; create it if it does not exist
+# save_path_train = cwd + '/train2017'
+# save_path_train_label = cwd + '/train2017_label/'
+# # List of all paths you need to check/create
+# paths = [save_path_train, save_path_train_label]
 
-# Loop through each path and create the directory if it doesn't exist
-for path in paths:
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
+# # Loop through each path and create the directory if it doesn't exist
+# for path in paths:
+#     if not os.path.exists(path):
+#         os.makedirs(path, exist_ok=True)
 
 # Ensure you replace 'path_to_images' and 'path_to_annotations' with your local dataset paths
-coco_train = CocoDetection(root=cwd + '/train2017',
-                           annFile=cwd + '/train2017_label/instances_train2017.json',)
+# coco_train = CocoDetection(root=cwd + '/train2017',
+#                            annFile=cwd + '/train2017_label/instances_train2017.json',)
 
 # coco_val = CocoDetection(root='path_to_images/val2017',
 #                          annFile='path_to_annotations/annotations/instances_val2017.json',

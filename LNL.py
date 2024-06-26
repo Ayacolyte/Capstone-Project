@@ -5,7 +5,7 @@ import numpy.matlib
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
-
+import os
 
 
 # initialise the grid size, neuron array size, electrode array size. All assumed to be sqaure
@@ -104,11 +104,11 @@ _,_,_,_,x_neu, y_neu, x_elec, y_elec= get_neu_and_elec_coord(neu_side_dim, elec_
 
 
 
-class SimpleNeuralNetwork(nn.Module):
+class SingleLayerNetwork(nn.Module):
     def __init__(self, n_input, n_output):
-        super(SimpleNeuralNetwork, self).__init__()
+        super(SingleLayerNetwork, self).__init__()
         # Define a single linear layer
-        self.LNL = nn.Linear(n_input, n_output)
+        self.LNL = nn.Linear(n_input, n_output,bias=False)
         # Optionally add an activation function
         self.activation = nn.ReLU()
         
@@ -127,7 +127,7 @@ class SimpleNeuralNetwork(nn.Module):
 # Model initialization
 n_input = 64
 n_output = 256
-LNL_model = SimpleNeuralNetwork(n_input, n_output)
+LNL_model = SingleLayerNetwork(n_input, n_output)
 
 
 
@@ -135,9 +135,14 @@ LNL_model = SimpleNeuralNetwork(n_input, n_output)
 with torch.no_grad():  # Disable gradient tracking
     # Set specific weights
     LNL_model.LNL.weight = nn.Parameter(torch.tensor(W_d, dtype=torch.float32))
-    # Set bias to zero
-    LNL_model.LNL.bias = nn.Parameter(torch.tensor(np.zeros((n_output)), dtype=torch.float32))
 
+
+
+cwd = os.getcwd()    
+LNL_model_path = cwd+'/data/LNL_model.pth'
+if not os.path.exists(cwd+'/data'):
+    os.makedirs(cwd+'/data')
+torch.save(LNL_model.LNL.state_dict(), LNL_model_path)
 #########################################################################################################################
 # Code block below is for training the neural network with inputs and outputs instead of hard coding the weights
 #########################################################################################################################
@@ -174,103 +179,87 @@ with torch.no_grad():  # Disable gradient tracking
 #         # Update LNL_model parameters
 #         optimizer.step()
 #     print(f'Epoch {epoch+1}, Loss: {loss.item()}')
-#########################################################################################################################  
 
-# Example input data (replace this with actual data)
-test_stims_v_tensor1 = torch.tensor(test_stims_v[0,:], dtype=torch.float32)
-test_stims_v_tensor2 = torch.tensor(test_stims_v[10,:], dtype=torch.float32)
-test_stims_v_tensor3 = torch.tensor(test_stims_v[100,:], dtype=torch.float32)
+#########################################################################################################################
+# Code block below is for graphical representation of results
+#########################################################################################################################
 
-
-# Disable gradient calculation for inference
-with torch.no_grad():
-    # Get the LNL_model's prediction
-    NN_output_test_stims1 = LNL_model(test_stims_v_tensor1)
-    NN_output_test_stims2 = LNL_model(test_stims_v_tensor2)
-    NN_output_test_stims3 = LNL_model(test_stims_v_tensor3)
+# # Example input data (replace this with actual data)
+# test_stims_v_tensor1 = torch.tensor(test_stims_v[0,:], dtype=torch.float32)
+# test_stims_v_tensor2 = torch.tensor(test_stims_v[10,:], dtype=torch.float32)
+# test_stims_v_tensor3 = torch.tensor(test_stims_v[100,:], dtype=torch.float32)
 
 
-fig1 = plt.figure()
-plt.subplot(3,3,1)
-plt.imshow(test_stims[0, :,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
-plt.colorbar()
-plt.title('Original Stimulus')
+# # Disable gradient calculation for inference
+# with torch.no_grad():
+#     # Get the LNL_model's prediction
+#     NN_output_test_stims1 = LNL_model(test_stims_v_tensor1)
+#     NN_output_test_stims2 = LNL_model(test_stims_v_tensor2)
+#     NN_output_test_stims3 = LNL_model(test_stims_v_tensor3)
 
-ax = fig1.add_subplot(3,3,2)
-plt.scatter( x_neu, y_neu, c = real_activ_ret_Test[:,0], alpha=0.5, edgecolors=None, cmap = 'gray'  ) 
-ax.set_aspect('equal')          
-plt.gca().invert_yaxis()
-plt.colorbar()    
-plt.axis('off')
-plt.title('Real Activation from LNL LNL_model') 
-
-ax = fig1.add_subplot(3,3,3)
-plt.scatter( x_neu, y_neu, c = NN_output_test_stims1, alpha=0.5, edgecolors=None, cmap = 'gray'  ) 
-ax.set_aspect('equal')          
-plt.gca().invert_yaxis()
-plt.colorbar()    
-plt.axis('off')
-plt.title('Activation Pattern from Neural Network') 
-
-plt.subplot(3,3,4)
-plt.imshow(test_stims[10,:,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
-plt.colorbar()
-
-ax = fig1.add_subplot(3,3,5)
-plt.scatter( x_neu, y_neu, c = real_activ_ret_Test[:,10], alpha=0.5, edgecolors=None, cmap = 'gray') 
-plt.colorbar()    
-plt.gca().invert_yaxis()
-ax.set_aspect('equal')  
-plt.axis('off')
-
-ax = fig1.add_subplot(3,3,6)
-plt.scatter( x_neu, y_neu, c = NN_output_test_stims2, alpha=0.5, edgecolors=None, cmap = 'gray') 
-plt.colorbar()    
-plt.gca().invert_yaxis()
-ax.set_aspect('equal')  
-plt.axis('off')
-
-
-
-plt.subplot(3,3,7)
-plt.imshow(test_stims[100, :,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
-plt.colorbar()
-
-ax = fig1.add_subplot(3,3,8)
-plt.scatter( x_neu, y_neu, c = real_activ_ret_Test[:,100], alpha=0.5, edgecolors=None, cmap = 'gray' )     
-plt.gca().invert_yaxis()
-plt.colorbar()
-ax.set_aspect('equal')  
-plt.axis('off')
-
-ax = fig1.add_subplot(3,3,9)
-plt.scatter( x_neu, y_neu, c = NN_output_test_stims3, alpha=0.5, edgecolors=None, cmap = 'gray' )     
-plt.gca().invert_yaxis()
-plt.colorbar()
-ax.set_aspect('equal')  
-plt.axis('off')
-plt.show(block=False)
-
-  # Keep the plot open
-while plt.fignum_exists(1):
-    plt.pause(0.1)
-    time.sleep(0.1)  
-
-
-# plt.subplot(3,2,1)
-# plt.imshow(train_stims[0, :,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
+# # Visualisation
+# fig1 = plt.figure()
+# plt.subplot(3,3,1)
+# plt.imshow(test_stims[0, :,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
 # plt.colorbar()
-# plt.title('Stimulus')
+# plt.title('Original Stimulus')
 
+# ax = fig1.add_subplot(3,3,2)
+# plt.scatter( x_neu, y_neu, c = real_activ_ret_Test[:,0], alpha=0.5, edgecolors=None, cmap = 'gray'  ) 
+# ax.set_aspect('equal')          
+# plt.gca().invert_yaxis()
+# plt.colorbar()    
+# plt.axis('off')
+# plt.title('Real Activation from LNL LNL_model') 
 
+# ax = fig1.add_subplot(3,3,3)
+# plt.scatter( x_neu, y_neu, c = NN_output_test_stims1, alpha=0.5, edgecolors=None, cmap = 'gray'  ) 
+# ax.set_aspect('equal')          
+# plt.gca().invert_yaxis()
+# plt.colorbar()    
+# plt.axis('off')
+# plt.title('Activation Pattern from Neural Network') 
 
-# plt.subplot(3,2,3)
-# plt.imshow(train_stims[10,:,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
+# plt.subplot(3,3,4)
+# plt.imshow(test_stims[10,:,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
 # plt.colorbar()
 
+# ax = fig1.add_subplot(3,3,5)
+# plt.scatter( x_neu, y_neu, c = real_activ_ret_Test[:,10], alpha=0.5, edgecolors=None, cmap = 'gray') 
+# plt.colorbar()    
+# plt.gca().invert_yaxis()
+# ax.set_aspect('equal')  
+# plt.axis('off')
+
+# ax = fig1.add_subplot(3,3,6)
+# plt.scatter( x_neu, y_neu, c = NN_output_test_stims2, alpha=0.5, edgecolors=None, cmap = 'gray') 
+# plt.colorbar()    
+# plt.gca().invert_yaxis()
+# ax.set_aspect('equal')  
+# plt.axis('off')
 
 
-# plt.subplot(3,2,5)
-# plt.imshow(train_stims[100, :,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
+
+# plt.subplot(3,3,7)
+# plt.imshow(test_stims[100, :,:], cmap = 'bwr', interpolation = 'none', clim=(-1, 1))
 # plt.colorbar()
 
+# ax = fig1.add_subplot(3,3,8)
+# plt.scatter( x_neu, y_neu, c = real_activ_ret_Test[:,100], alpha=0.5, edgecolors=None, cmap = 'gray' )     
+# plt.gca().invert_yaxis()
+# plt.colorbar()
+# ax.set_aspect('equal')  
+# plt.axis('off')
+
+# ax = fig1.add_subplot(3,3,9)
+# plt.scatter( x_neu, y_neu, c = NN_output_test_stims3, alpha=0.5, edgecolors=None, cmap = 'gray' )     
+# plt.gca().invert_yaxis()
+# plt.colorbar()
+# ax.set_aspect('equal')  
+# plt.axis('off')
+# plt.show(block=False)
+
+#   # Keep the plot open
+# while plt.fignum_exists(1):
+#     plt.pause(0.1)
+#     time.sleep(0.1)  

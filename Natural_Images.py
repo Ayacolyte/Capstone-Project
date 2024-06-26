@@ -7,6 +7,8 @@ Get Natural Images
 """
 import torch
 from torchvision import datasets, transforms
+from torchvision.transforms import Lambda
+from torch.utils.data import TensorDataset, DataLoader
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,52 +29,49 @@ class ToGrayScale(torch.nn.Module):
 
 transform = transforms.Compose([
     transforms.ToTensor(),  # Convert images to PyTorch tensors
-    ToGrayScale()
-    #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize the images
+    ToGrayScale(),
+    Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
 ])
 
-cifar10_train = datasets.CIFAR10(root=cwd+'/data', train=True, download=True,transform=transform)
+cifar100_train = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)
 
 # Load CIFAR-10 test data
-cifar10_test = datasets.CIFAR10(root=cwd+'/data', train=False, download=True,transform=transform)
-# ==============================================================================================================================
-# SECTION: Convert to Gray Scale
-# ==============================================================================================================================
+cifar100_test = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=transform)
 
-
-def convert_img_to_numpy(data):
-    # load data
-    loader = torch.utils.data.DataLoader(data, batch_size=len(data),
-                                          shuffle=False)
-
-    # Extract all images and labels
-    images, _ = next(iter(loader))
-    # Remove the channel dimension and convert to numpy array
-    images_np = images.squeeze(1).numpy()
-
-    return images_np
-
-cifar10_train_np = convert_img_to_numpy(cifar10_train)
-cifar10_test_np = convert_img_to_numpy(cifar10_test)
-# Print the shape of the numpy array
-#print(cifar10_train_np.shape)  # Should be (50000, 32, 32)
+#train_dataset = TensorDataset(cifar100_train, cifar100_train)
+train_loader = DataLoader(cifar100_train, batch_size=32, shuffle=True)
+#test_dataset = TensorDataset(cifar100_test, cifar100_test)
+test_loader = DataLoader(cifar100_test, batch_size=32, shuffle=True)
 
 # ==============================================================================================================================
 # SECTION: Visualise 1st 10 images to check data
 # ==============================================================================================================================
-def imshow(img):
-    img = img / 2 + 0.5  # unnormalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    return
+
+def convert_img_to_tensor(data):
+    # load data
+    loader = torch.utils.data.DataLoader(data, batch_size=len(data),shuffle=False)
+
+    # Extract all images and labels
+    images, _ = next(iter(loader))
+    # Remove the channel dimension and convert to numpy array
+    images_tsr = images.view(images.shape[0],-1)
+
+    return images_tsr
+
+cifar100_train_tsr = convert_img_to_tensor(cifar100_train)
+cifar100_test_tsr = convert_img_to_tensor(cifar100_test)
+# Print the shape of the numpy array
+#print(cifar100_train_np.shape)  # Should be (50000, 32, 32)
 
 # Plotting the images
-fig, axes = plt.subplots(1, 10, figsize=(15, 1.5))
-for i in range(10):
-    axes[i].imshow(cifar10_train[i][0].numpy())
-    axes[i].set_title('Label: %s' % cifar10_train.classes[cifar10_train[i][1]])
-    axes[i].axis('off')
-plt.show()
+# fig, axes = plt.subplots(1, 10, figsize=(15, 1.5))
+# for i in range(10):
+#     img = axes[i].imshow(cifar100_train_np[i],cmap='gray')
+#     axes[i].set_title('Label: %s' % cifar100_train.classes[cifar100_train[i][1]])
+#     axes[i].axis('off')
+#     fig.colorbar(img, ax=axes[i], fraction=0.046,aspect=20)
+# fig.subplots_adjust(wspace=1)  # Increase the width space
+# plt.show()
 
 
 # cwd = os.getcwd()

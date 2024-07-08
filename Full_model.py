@@ -5,7 +5,7 @@ import os
 import time
 # import required data from preceding scripts
 from LNL import LNL_model_path  # Import LNL_model from LNL script
-from Natural_Images import train_loader,cifar100_train_tsr,cifar100_test_tsr
+from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
 import matplotlib.pyplot as plt
 
 
@@ -17,12 +17,11 @@ class AutoEncoder(nn.Module):
         self.LNL_model = nn.Linear(64, 256, bias=False)
         self.layer3 = nn.Linear(256, 1024, bias=False)
         self.activation = nn.ReLU()
-
         self.LNL_model.load_state_dict(torch.load(LNL_model_path))
-
+        self.activation2 = nn.Sigmoid()
     def forward(self, x):
         x = self.layer1(x) 
-        x = self.activation(x)
+        #x = self.activation(x)
         x = self.LNL_model(x)  
         x = self.activation(x)
         x = self.layer3(x)
@@ -30,75 +29,74 @@ class AutoEncoder(nn.Module):
         return x
     
 
+if __name__ == "__main__":
+    # # Number of epochs
+    n_epochs = 50
+    learning_rates = [0.01, 0.001, 0.0001, 0.00001]
+    train_err = torch.zeros(n_epochs,len(learning_rates))
+    val_err = torch.zeros(n_epochs,len(learning_rates))
+    Autoencoders = []
 
+    for i, learning_rate in enumerate(learning_rates):
+            # Define Model
+        basic_autoencoder = AutoEncoder()
 
+        # Define a loss function
+        criterion = nn.MSELoss()  # mean squared loss, eucledian
 
-# # Number of epochs
-n_epochs = 50
-learning_rates = [0.1, 0.01, 0.001, 0.0001]
-train_err = torch.zeros(n_epochs,len(learning_rates))
-val_err = torch.zeros(n_epochs,len(learning_rates))
-Autoencoders = []
+        # Define an optimizer, specifying only the parameters of fc2 and fc3
+        optimizer = torch.optim.Adam([
+            {'params': basic_autoencoder.layer1.parameters()},
+            {'params': basic_autoencoder.layer3.parameters()}
+        ], lr=learning_rate)
+        for epoch in range(n_epochs):  # Number of epochs
+            for input, _ in train_loader:
+                
+                input = input.view(input.size(0), -1)
+                # Zero the parameter gradients
+                optimizer.zero_grad()
 
-for i, learning_rate in enumerate(learning_rates):
-        # Define Model
-    basic_autoencoder = AutoEncoder()
+                # Forward pass
+                outputs = basic_autoencoder(input)
 
-    # Define a loss function
-    criterion = nn.MSELoss()  # mean squared loss, eucledian
+                # Compute loss
+                loss = criterion(outputs, input)
 
-    # Define an optimizer, specifying only the parameters of fc2 and fc3
-    optimizer = torch.optim.Adam([
-        {'params': basic_autoencoder.layer1.parameters()},
-        {'params': basic_autoencoder.layer3.parameters()}
-    ], lr=learning_rate)
-    for epoch in range(n_epochs):  # Number of epochs
-        for input, _ in train_loader:
-            
-            input = input.view(input.size(0), -1)
-            # Zero the parameter gradients
-            optimizer.zero_grad()
+                # Backward pass and optimize
+                loss.backward()
+                optimizer.step()
 
-            # Forward pass
-            outputs = basic_autoencoder(input)
+            # Print loss
+            if (epoch+1) % 10 == 0:  # Print every 10 epochs
+                print(f'Epoch [{epoch+1}/{n_epochs}], Loss: {loss.item():.4f}')
+            # training data
+            output_train = basic_autoencoder(cifar100_train_tsr_flat)
+            train_loss = criterion(output_train, cifar100_train_tsr_flat)
+            train_err[epoch,i] = train_loss.item()
+        
+            # validation data
+            output_test = basic_autoencoder(cifar100_train_tsr_flat)
+            val_loss = criterion(output_test, cifar100_train_tsr_flat)
+            val_err[epoch,i] = val_loss.item()
+        Autoencoders.append(basic_autoencoder)
 
-            # Compute loss
-            loss = criterion(outputs, input)
+    # save the result in the data folder
+    cwd = os.getcwd()
+    data_dir = cwd + '/data'
 
-            # Backward pass and optimize
-            loss.backward()
-            optimizer.step()
+    # Create the directory if it doesn't exist
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
 
-        # Print loss
-        if (epoch+1) % 10 == 0:  # Print every 10 epochs
-            print(f'Epoch [{epoch+1}/{n_epochs}], Loss: {loss.item():.4f}')
-        # training data
-        output_train = basic_autoencoder(cifar100_train_tsr)
-        train_loss = criterion(output_train, cifar100_train_tsr)
-        train_err[epoch,i] = train_loss.item()
+    file_path = os.path.join(data_dir, 'NN_output.pkl')
+    with open(file_path, 'wb') as f:
+        pickle.dump((train_err, val_err), f)
     
-        # validation data
-        output_test = basic_autoencoder(cifar100_test_tsr)
-        val_loss = criterion(output_test, cifar100_test_tsr)
-        val_err[epoch,i] = val_loss.item()
-    Autoencoders.append(basic_autoencoder)
+    labels = ['lr = 0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
+    for idx, model in enumerate(Autoencoders):
+        model_path = cwd+f'/data/model_{labels[idx]}.pth'
+        torch.save(model.state_dict(), model_path)
 
-# save the result in the data folder
-cwd = os.getcwd()
-data_dir = cwd + '/data'
-
-# Create the directory if it doesn't exist
-if not os.path.exists(data_dir):
-    os.makedirs(data_dir)
-
-file_path = os.path.join(data_dir, 'NN_output.pkl')
-with open(file_path, 'wb') as f:
-    pickle.dump((train_err, val_err), f)
-  
-
-for idx, model in enumerate(Autoencoders):
-    model_path = cwd+f'/data/model_{idx}.pth'
-    torch.save(model.state_dict(), model_path)
 
 # labels = ['lr=0.1', 'lr = 0.01', 'lr = 0.001', 'lr = 0.0001']
 # # Create the bar plot

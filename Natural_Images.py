@@ -47,49 +47,39 @@ test_loader = DataLoader(cifar100_test, batch_size=32, shuffle=True)
 # SECTION: Visualise 1st 10 images to check data
 # ==============================================================================================================================
 
-def convert_img_to_tensor(data):
+def loader2tensor(data,flatten=False):
     # load data
     loader = torch.utils.data.DataLoader(data, batch_size=len(data),shuffle=False)
 
     # Extract all images and labels
     images, _ = next(iter(loader))
     # Remove the channel dimension and convert to numpy array
-    images_tsr = images.view(images.shape[0],-1)
+    if flatten:
+        images = images.view(images.shape[0],-1)
 
-    return images_tsr
+    return images
 
-cifar100_train_tsr = convert_img_to_tensor(cifar100_train)
-cifar100_test_tsr = convert_img_to_tensor(cifar100_test)
+
+cifar100_train_tsr_flat = loader2tensor(cifar100_train,flatten=True)
+cifar100_test_tsr_flat = loader2tensor(cifar100_test,flatten=True)
+cifar100_train_tsr = loader2tensor(cifar100_train,flatten=False)
+cifar100_test_tsr = loader2tensor(cifar100_test,flatten=False)
+
+cifar100_train_np = cifar100_train_tsr.numpy()
+cifar100_test_np = cifar100_test_tsr.numpy()
 # Print the shape of the numpy array
 #print(cifar100_train_np.shape)  # Should be (50000, 32, 32)
 
-# Plotting the images
+# #Plotting the images
 # fig, axes = plt.subplots(1, 10, figsize=(15, 1.5))
 # for i in range(10):
 #     img = axes[i].imshow(cifar100_train_np[i],cmap='gray')
-#     axes[i].set_title('Label: %s' % cifar100_train.classes[cifar100_train[i][1]])
+#     axes[i].set_title('%s' % cifar100_train.classes[cifar100_train[i][1]])
 #     axes[i].axis('off')
 #     fig.colorbar(img, ax=axes[i], fraction=0.046,aspect=20)
 # fig.subplots_adjust(wspace=1)  # Increase the width space
 # plt.show()
 
 
-# cwd = os.getcwd()
-# # Check if the directory exists where the file will be saved; create it if it does not exist
-# save_path_train = cwd + '/train2017'
-# save_path_train_label = cwd + '/train2017_label/'
-# # List of all paths you need to check/create
-# paths = [save_path_train, save_path_train_label]
 
-# # Loop through each path and create the directory if it doesn't exist
-# for path in paths:
-#     if not os.path.exists(path):
-#         os.makedirs(path, exist_ok=True)
 
-# Ensure you replace 'path_to_images' and 'path_to_annotations' with your local dataset paths
-# coco_train = CocoDetection(root=cwd + '/train2017',
-#                            annFile=cwd + '/train2017_label/instances_train2017.json',)
-
-# coco_val = CocoDetection(root='path_to_images/val2017',
-#                          annFile='path_to_annotations/annotations/instances_val2017.json',
-#                          transform=transform)

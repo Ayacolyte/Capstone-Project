@@ -60,7 +60,7 @@ def relu_nonlinearity(xx):
     return np.maximum(0,xx)
 
 activ_spread = 0
-current_spread = 1
+current_spread = 0.5
 W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread)
 
 #==============================================================================================================

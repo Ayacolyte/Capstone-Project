@@ -7,7 +7,7 @@ import matplotlib.pyplot  as plt
 import math
 # Load the model state dictionary
 cwd = os.getcwd()
-model_path = cwd+f'/data/model_lr = 0.0001.pth'
+model_path = cwd+f'/data/ReLU_model_lr = 0.0001.pth'
 state_dict = torch.load(model_path)
 
 # Instantiate a new model of the same architecture
@@ -52,23 +52,24 @@ for i in range(2):
             img = axs[i,j].imshow(cifar100_test_np[4*j],cmap='gray')
             axs[i,j].axis('off')
             axs[i,j].set_title(f'image {j}')
-        fig.colorbar(img, ax=axs[i, j], fraction=0.046, pad=0.04)     
+        fig.colorbar(img, ax=axs[i, j], fraction=0.046, pad=0.04)    
+fig.suptitle('Linear+Sigmoid Image Reconstruction Comparison', fontsize=16) 
 plt.show()
 
 
-def visualize_weights(model):
-    layers = [model.layer1, model.LNL_model, model.layer3]
-    fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
+# def visualize_weights(model):
+#     layers = [model.layer1, model.LNL_model, model.layer3]
+#     fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
 
-    for i, layer in enumerate(layers):
-        weights = layer.weight.data.numpy()
-        axs[i].imshow(weights, aspect='auto', cmap='gray')
-        axs[i].set_title(f'Layer {i + 1} Weights')
-        axs[i].set_xlabel('Neurons')
-        axs[i].set_ylabel('Input Features')
-        fig.colorbar(axs[i].images[0], ax=axs[i])
+#     for i, layer in enumerate(layers):
+#         weights = layer.weight.data.numpy()
+#         axs[i].imshow(weights, aspect='auto', cmap='gray')
+#         axs[i].set_title(f'Layer {i + 1} Weights')
+#         axs[i].set_xlabel('Neurons')
+#         axs[i].set_ylabel('Input Features')
+#         fig.colorbar(axs[i].images[0], ax=axs[i])
 
-    plt.show()
+#     plt.show()
 
-# Visualize the weights of the model
-visualize_weights(model_loaded)
+# # Visualize the weights of the model
+# visualize_weights(model_loaded)

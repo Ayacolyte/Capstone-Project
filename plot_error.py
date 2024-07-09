@@ -20,7 +20,7 @@ cwd = os.getcwd()
 
 #     print(data)
 
-with open(cwd + '/data/NN_output_50epoch_Linear.pkl', 'rb') as file:
+with open(cwd + '/data/NN_output_50epoch_0.5xSpread.pkl', 'rb') as file:
     data = pickle.load(file)
 
     #print(data[0])
@@ -35,29 +35,27 @@ labels = ['lr=0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
 log_data = data
 for i in range(data[0].shape[1]) :
     for j in range(data[0].shape[0]):
-        if i == 0:
-            continue
+
         log_data[0][j,i] = math.log(data[0][j,i])
     #print(i)
-    ax1.plot(x, log_data[0][:,i], label=labels[i-1])
+    ax1.plot(x, log_data[0][:,i], label=labels[i])
 
 ax1.set_xlabel('Epochs')
 ax1.set_ylabel('Log Scale Error')
-ax1.set_title('Training Loss over 50 Epochs: Linear Activation')
+ax1.set_title('Training Loss over 50 Epochs: Half Spread')
 ax1.set_ylim(-5, 0)
 ax1.legend()
 
 for i in range(data[1].shape[1]) :
     for j in range(data[1].shape[0]):
-        if i == 0:
-            continue
+
         log_data[1][j,i] = math.log(data[1][j,i])
     #print(i)
-    ax2.plot(x, log_data[1][:,i], label=labels[i-1])
+    ax2.plot(x, log_data[1][:,i], label=labels[i])
 
 ax2.set_xlabel('Epochs')
 ax2.set_ylabel('Log Scale Error')
-ax2.set_title('Validation Loss over 50 Epochs: Linear Activation')
+ax2.set_title('Validation Loss over 50 Epochs: Half Spread')
 ax2.set_ylim(-5, 0)
 ax2.legend()
 

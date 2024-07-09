@@ -21,7 +21,7 @@ class AutoEncoder(nn.Module):
         self.activation2 = nn.Sigmoid()
     def forward(self, x):
         x = self.layer1(x) 
-        #x = self.activation(x)
+        x = self.activation(x)
         x = self.LNL_model(x)  
         x = self.activation(x)
         x = self.layer3(x)
@@ -31,7 +31,7 @@ class AutoEncoder(nn.Module):
 
 if __name__ == "__main__":
     # # Number of epochs
-    n_epochs = 50
+    n_epochs = 20
     learning_rates = [0.01, 0.001, 0.0001, 0.00001]
     train_err = torch.zeros(n_epochs,len(learning_rates))
     val_err = torch.zeros(n_epochs,len(learning_rates))

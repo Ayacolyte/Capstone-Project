@@ -7,7 +7,7 @@ import matplotlib.pyplot  as plt
 import math
 # Load the model state dictionary
 cwd = os.getcwd()
-model_path = cwd+f'/data/ReLU_model_lr = 0.0001.pth'
+model_path = cwd+f'/data/model_lr = 0.0001.pth'
 state_dict = torch.load(model_path)
 
 # Instantiate a new model of the same architecture
@@ -53,7 +53,7 @@ for i in range(2):
             axs[i,j].axis('off')
             axs[i,j].set_title(f'image {j}')
         fig.colorbar(img, ax=axs[i, j], fraction=0.046, pad=0.04)    
-fig.suptitle('Linear+Sigmoid Image Reconstruction Comparison', fontsize=16) 
+fig.suptitle('ReLU Image Reconstruction Comparison', fontsize=16) 
 plt.show()
 
 

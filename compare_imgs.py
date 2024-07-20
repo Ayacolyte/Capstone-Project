@@ -57,19 +57,19 @@ fig.suptitle('ReLU Image Reconstruction Comparison', fontsize=16)
 plt.show()
 
 
-# def visualize_weights(model):
-#     layers = [model.layer1, model.LNL_model, model.layer3]
-#     fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
+def visualize_weights(model):
+    layers = [model.layer1, model.LNL_model, model.layer3]
+    fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
 
-#     for i, layer in enumerate(layers):
-#         weights = layer.weight.data.numpy()
-#         axs[i].imshow(weights, aspect='auto', cmap='gray')
-#         axs[i].set_title(f'Layer {i + 1} Weights')
-#         axs[i].set_xlabel('Neurons')
-#         axs[i].set_ylabel('Input Features')
-#         fig.colorbar(axs[i].images[0], ax=axs[i])
+    for i, layer in enumerate(layers):
+        weights = layer.weight.data.numpy()
+        axs[i].imshow(weights, aspect='auto', cmap='gray')
+        axs[i].set_title(f'Layer {i + 1} Weights')
+        axs[i].set_xlabel('Neurons')
+        axs[i].set_ylabel('Input Features')
+        fig.colorbar(axs[i].images[0], ax=axs[i])
 
-#     plt.show()
+    plt.show()
 
-# # Visualize the weights of the model
-# visualize_weights(model_loaded)
+# Visualize the weights of the model
+visualize_weights(model_loaded)

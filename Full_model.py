@@ -53,8 +53,8 @@ class AutoEncoder(nn.Module):
 if __name__ == "__main__":
     # # Number of epochs
     n_epochs = 50
-    learning_rates = [0.01, 0.001, 0.0001, 0.00001]
-    #learning_rates = [0.0001]
+    #learning_rates = [0.01, 0.001, 0.0001, 0.00001]
+    learning_rates = [0.0001]
     train_err = torch.zeros(n_epochs + 1,len(learning_rates))
     val_err = torch.zeros(n_epochs + 1,len(learning_rates))
     Autoencoders = []

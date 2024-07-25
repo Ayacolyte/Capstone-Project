@@ -68,7 +68,7 @@ for i in range(4):
             axs[i,j].axis('off')
             axs[i,j].set_title(f'original image')
         fig.colorbar(img, ax=axs[i, j], fraction=0.046, pad=0.04)    
-fig.suptitle('Image Reconstruction Comparison: Linear+2sig', fontsize=16) 
+fig.suptitle('Image Reconstruction Comparison: Linear+modifiedERF', fontsize=16) 
 plt.show()
 
 

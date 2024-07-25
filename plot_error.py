@@ -20,7 +20,7 @@ cwd = os.getcwd()
 
 #     print(data)
 
-with open(cwd + '/data/NN_output_50epoch_0.5xSpread.pkl', 'rb') as file:
+with open(cwd + '/data/NN_output.pkl', 'rb') as file:
     data = pickle.load(file)
 
     #print(data[0])
@@ -42,7 +42,7 @@ for i in range(data[0].shape[1]) :
 
 ax1.set_xlabel('Epochs')
 ax1.set_ylabel('Log Scale Error')
-ax1.set_title('Training Loss over 50 Epochs: Half Spread')
+ax1.set_title('Training Loss over 50 Epochs: Linear+2sig')
 ax1.set_ylim(-5, 0)
 ax1.legend()
 
@@ -55,7 +55,7 @@ for i in range(data[1].shape[1]) :
 
 ax2.set_xlabel('Epochs')
 ax2.set_ylabel('Log Scale Error')
-ax2.set_title('Validation Loss over 50 Epochs: Half Spread')
+ax2.set_title('Validation Loss over 50 Epochs: Linear+2sig')
 ax2.set_ylim(-5, 0)
 ax2.legend()
 

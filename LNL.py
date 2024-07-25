@@ -42,11 +42,12 @@ def get_neu_and_elec_coord(neu_side_dim,elec_side_dim,grid_side_dim):
 #==============================================================================================================
 # Get the Linear Transform Matrix (L of the LNL LNL_model)
 #==============================================================================================================
-def get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread):
+def get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM = False):
 
     x_neu_flat, y_neu_flat, x_elec_flat, y_elec_flat,_,_,_,_= get_neu_and_elec_coord(neu_side_dim, elec_side_dim,grid_side_dim)
     #print(x_neu_flat.shape, x_elec_flat.shape, y_neu_flat.shape, y_elec_flat.shape)
-
+    if FHWM:
+        current_spread = (x_elec_flat[1] - x_elec_flat[0])/2.235
 
     W_d = np.zeros((neu_side_dim**2, elec_side_dim**2)) 
     for i in range(neu_side_dim**2):
@@ -60,8 +61,8 @@ def relu_nonlinearity(xx):
     return np.maximum(0,xx)
 
 activ_spread = 0
-current_spread = 0.5
-W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread)
+current_spread = 1
+W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM=True)
 
 #==============================================================================================================
 # Initialising the randomised electrical stimulus (NL of the LNL LNL_model)

@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot  as plt
 import math
+import numpy as np
+
 # Load the model state dictionary
 cwd = os.getcwd()
 model_path = cwd+f'/data/model_lr = 0.0001.pth'
@@ -36,54 +38,53 @@ layer2_np = layer2.detach().numpy()
 #########################################################################################################################
 # Code block below is for graphical representation of results
 #########################################################################################################################
+# Define the sigmoid activation function
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
-# # Plotting the images
-# fig, axes = plt.subplots(1, 10, figsize=(15, 1.5))
-# for i in range(10):
-#     img = axes[i].imshow(cifar100_test_np[i],cmap='gray')
-#     #axes[i].set_title('%s' % cifar100_train.classes[cifar100_train[i][1]])
-#     axes[i].axis('off')
-#     fig.colorbar(img, ax=axes[i], fraction=0.046,aspect=20)
-# fig.subplots_adjust(wspace=1)  # Increase the width space
-# plt.show()
+def double_sigmoid(x, alpha1, alpha2, beta1, beta2):
+    return (1 / (1 + np.exp(alpha1*(x-beta1))))   *   (1 / (1 + np.exp(alpha2*(x-beta2)))) 
 
-fig, axs = plt.subplots(4, 5,figsize=(15, 6))
-for i in range(4):
-    for j in range(5):
-        if  i == 3:
-            #img = convert
-            img = axs[i,j].imshow(output_np[4*j],cmap='gray')
-            axs[i,j].axis('off')
-            axs[i,j].set_title('Reconstruction')
-        elif i == 2:
-            img = axs[i,j].imshow(layer2_np[4*j],cmap='gray')
-            axs[i,j].axis('off')
-            axs[i,j].set_title(f'Neural Activation')
-        elif i == 1:
-            img = axs[i,j].imshow(layer1_np[4*j],cmap='gray')
-            axs[i,j].axis('off')
-            axs[i,j].set_title(f'Electrodes Activation')
-        elif i == 0:
-            img = axs[i,j].imshow(cifar100_test_np[4*j],cmap='gray')
-            axs[i,j].axis('off')
-            axs[i,j].set_title(f'original image')
-        fig.colorbar(img, ax=axs[i, j], fraction=0.046, pad=0.04)    
-fig.suptitle('Image Reconstruction Comparison: Linear+2sig', fontsize=16) 
-plt.show()
+def linear(x):
+    return x
+
+def ReLU(x):
+    return np.maximum(0, x)
+
+
+# Define the range for x-axis
+x = np.linspace(-10, 10, 400)
+
+# Calculate the activation function values
+alpha1, alpha2, beta1, beta2 = 5,-5,0.1,-0.1
+activation_2sig = double_sigmoid(x,alpha1, alpha2, beta1, beta2)
+activation_linear= linear(x)
+activation_ReLU = ReLU(x)
 
 
 def visualize_weights(model):
     layers = [model.layer1, model.LNL_model, model.layer3]
+    activs = [activation_linear, activation_2sig, activation_ReLU]
     fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
 
     for i, layer in enumerate(layers):
-        weights = layer.weight.data.numpy()
-        axs[i].imshow(weights.transpose(), aspect='equal', cmap='gray')
+        weights = layer.weight.data.numpy().flatten()
+        #axs[i].imshow(weights, aspect='auto', cmap='gray')
+        axs[i].hist(weights, density = True, bins=50, color='blue', edgecolor='black', label='Weights Distribution')
         axs[i].set_title(f'Layer {i + 1} Weights')
-        axs[i].set_xlabel('Neurons')
-        axs[i].set_ylabel('Input Features')
-        fig.colorbar(axs[i].images[0], ax=axs[i])
+        axs[i].set_xlabel('Weights')
+        axs[i].set_ylabel('Normalised Frequency')
+        axs[i].set_ylim(-0.5, 65)
+        axs[i].set_xlim(np.min(weights), np.max(weights))
 
+        ax2 = axs[i].twinx()
+        ax2.plot(x, activs[i], 'r', label='Activation Function')
+        ax2.set_ylim(-0.5, 1)
+
+        axs[i].legend(loc='upper right', bbox_to_anchor=(1, 1), fontsize='small')
+        ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.92), fontsize='small')
+
+    plt.suptitle('Weights Distribution and Activation Functions: Linear+2sig ')
     plt.show()
 
 # Visualize the weights of the model

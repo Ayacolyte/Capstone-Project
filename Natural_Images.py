@@ -8,7 +8,7 @@ Get Natural Images
 import torch
 from torchvision import datasets, transforms
 from torchvision.transforms import Lambda
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader, ConcatDataset
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,11 +33,22 @@ transform = transforms.Compose([
     Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
 ])
 
-cifar100_train = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)
+# Mirrored transformation
+mirrored_transform = transforms.Compose([
+    transforms.ToTensor(),  # Convert images to PyTorch tensors
+    transforms.RandomVerticalFlip(p=1.0),  # Flip the image vertically
+    ToGrayScale(),
+    Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
+])
 
+
+cifar100_train_og = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)
+cifar100_train_mir = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=mirrored_transform)
+cifar100_train = ConcatDataset([cifar100_train_og, cifar100_train_mir])
 # Load CIFAR-10 test data
-cifar100_test = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=transform)
-
+cifar100_test_og = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=transform)
+cifar100_test_mir = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=mirrored_transform)
+cifar100_test = ConcatDataset([cifar100_test_og, cifar100_test_mir])
 #train_dataset = TensorDataset(cifar100_train, cifar100_train)
 train_loader = DataLoader(cifar100_train, batch_size=32, shuffle=True)
 #test_dataset = TensorDataset(cifar100_test, cifar100_test)

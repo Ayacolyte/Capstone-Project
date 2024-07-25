@@ -8,7 +8,7 @@ from LNL import LNL_model_path  # Import LNL_model from LNL script
 from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
 import matplotlib.pyplot as plt
 
-
+drop_rate = 0.2
 # Define Full model, in which the weights from LNL model is inherited
 class AutoEncoder(nn.Module):
     def __init__(self):
@@ -19,22 +19,44 @@ class AutoEncoder(nn.Module):
         self.activation = nn.ReLU()
         self.LNL_model.load_state_dict(torch.load(LNL_model_path))
         self.activation2 = nn.Sigmoid()
+        self.dropout = nn.Dropout(p=drop_rate)
     def forward(self, x):
         x = self.layer1(x) 
-        x = self.activation(x)
+        #x = self.activation(x)
+        lyr1 = x
         x = self.LNL_model(x)  
         x = self.activation(x)
+        #x = self.activation2(-5*(x+0.1))
+        #x = self.activation2(5*(x-0.1))
+        lyr2 = x
+        x = self.dropout(x)  # Apply dropout after hidden layer
         x = self.layer3(x)
         x = self.activation(x)
-        return x
-    
 
+        return x,lyr1, lyr2
+
+# # define a custom double sigmoid activation function using pytorch built in sigmoid for fast gradient computation
+# class DoubleSigmoid(nn.Module):
+#     def __init__(self, alpha1=1.0, beta1=0.1, alpha2=-1.0, beta2=0.1):
+#         super(DoubleSigmoid, self).__init__()
+#         self.sigmoid = nn.Sigmoid()
+#         self.alpha1 = alpha1
+#         self.beta1 = beta1
+#         self.alpha2 = alpha2
+#         self.beta2 = beta2
+
+#     def forward(self, x):
+#         sigmoid1 = self.sigmoid(self.alpha1 * x + self.beta1)
+#         sigmoid2 = self.sigmoid(self.alpha2 * x + self.beta2)
+#         return sigmoid1 + sigmoid2
+    
 if __name__ == "__main__":
     # # Number of epochs
-    n_epochs = 20
+    n_epochs = 50
     learning_rates = [0.01, 0.001, 0.0001, 0.00001]
-    train_err = torch.zeros(n_epochs,len(learning_rates))
-    val_err = torch.zeros(n_epochs,len(learning_rates))
+    #learning_rates = [0.0001]
+    train_err = torch.zeros(n_epochs + 1,len(learning_rates))
+    val_err = torch.zeros(n_epochs + 1,len(learning_rates))
     Autoencoders = []
 
     for i, learning_rate in enumerate(learning_rates):
@@ -57,7 +79,7 @@ if __name__ == "__main__":
                 optimizer.zero_grad()
 
                 # Forward pass
-                outputs = basic_autoencoder(input)
+                outputs,_, _ = basic_autoencoder(input)
 
                 # Compute loss
                 loss = criterion(outputs, input)
@@ -67,19 +89,20 @@ if __name__ == "__main__":
                 optimizer.step()
 
             # Print loss
-            if (epoch+1) % 10 == 0:  # Print every 10 epochs
-                print(f'Epoch [{epoch+1}/{n_epochs}], Loss: {loss.item():.4f}')
+            if (epoch) % 10 == 0:  # Print every 10 epochs
+                print(f'Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
             # training data
-            output_train = basic_autoencoder(cifar100_train_tsr_flat)
+            output_train,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
             train_loss = criterion(output_train, cifar100_train_tsr_flat)
-            train_err[epoch,i] = train_loss.item()
+            train_err[epoch + 1,i] = train_loss.item()
         
             # validation data
-            output_test = basic_autoencoder(cifar100_train_tsr_flat)
-            val_loss = criterion(output_test, cifar100_train_tsr_flat)
-            val_err[epoch,i] = val_loss.item()
+            output_test,_,_ = basic_autoencoder(cifar100_test_tsr_flat)
+            val_loss = criterion(output_test, cifar100_test_tsr_flat)
+            val_err[epoch + 1,i] = val_loss.item()
         Autoencoders.append(basic_autoencoder)
 
+    train_err[0], val_err [0] = cifar100_train_tsr_flat.mean(),cifar100_test_tsr_flat.mean()
     # save the result in the data folder
     cwd = os.getcwd()
     data_dir = cwd + '/data'
@@ -87,14 +110,17 @@ if __name__ == "__main__":
     # Create the directory if it doesn't exist
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-
+    
     file_path = os.path.join(data_dir, 'NN_output.pkl')
     with open(file_path, 'wb') as f:
         pickle.dump((train_err, val_err), f)
     
     labels = ['lr = 0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
     for idx, model in enumerate(Autoencoders):
-        model_path = cwd+f'/data/model_{labels[idx]}.pth'
+        if len(Autoencoders) == 1:
+            model_path = cwd+f'/data/model_lr = 0.0001.pth'
+        else:
+            model_path = cwd+f'/data/model_{labels[idx]}.pth'
         torch.save(model.state_dict(), model_path)
 
 

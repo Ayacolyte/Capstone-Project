@@ -4,37 +4,62 @@ import pickle
 import os
 import time
 # import required data from preceding scripts
-from LNL import LNL_model_path  # Import LNL_model from LNL script
-from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
-import matplotlib.pyplot as plt
+#from LNL import LNL_model_path,elec_side_dim  # Import LNL_model from LNL script
+#from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
+#import matplotlib.pyplot as plt
 
-drop_rate = 0.2
+#drop_rate = 0.2
 # Define Full model, in which the weights from LNL model is inherited
-class AutoEncoder(nn.Module):
-    def __init__(self):
-        super(AutoEncoder, self).__init__()   
-        self.layer1 = nn.Linear(1024, 64, bias=False)
-        self.LNL_model = nn.Linear(64, 256, bias=False)
-        self.layer3 = nn.Linear(256, 1024, bias=False)
-        self.activation = nn.ReLU()
-        self.LNL_model.load_state_dict(torch.load(LNL_model_path))
-        self.activation2 = nn.Sigmoid()
-        self.dropout = nn.Dropout(p=drop_rate)
+class DoubleSigmoid(nn.Module):
+    def __init__(self, shift, magnitude):
+        super(DoubleSigmoid, self).__init__()
+        self.shift = shift
+        self.magnitude = magnitude
+
     def forward(self, x):
-        x = self.layer1(x) 
-        #x = self.activation(x)
-        lyr1 = x
-        x = self.LNL_model(x)  
-        x = self.activation(x)
-        #x = self.activation2(-5*(x+0.1))
-        #x = self.activation2(5*(x-0.1))
-        lyr2 = x
-        x = self.dropout(x)  # Apply dropout after hidden layer
-        x = self.layer3(x)
-        x = self.activation(x)
+        sigmoid1 = torch.sigmoid(self.magnitude * (x + self.shift))
+        sigmoid2 = torch.sigmoid(-1*self.magnitude * (x - self.shift))
+        return sigmoid1 + sigmoid2
+    
+def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude):
+    
+    class AutoEncoder(nn.Module):
+        def __init__(self):
+            super(AutoEncoder, self).__init__()   
+            self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=False)
+            self.LNL_model = nn.Linear(elec_side_dim**2, neu_side_dim**2, bias=False)
+            self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=False)
+            self.relu = nn.ReLU()
+            self.LNL_model.load_state_dict(torch.load(LNL_model_path))
+            #self.activation2 = nn.Sigmoid()
+            self.dropout = nn.Dropout(p=drop_rate)
+            self.double_sigmoid = DoubleSigmoid(shift, magnitude)
+        def forward(self, x):
+            x = self.layer1(x) 
+            if activ_func1 == "ReLU":
+                x = self.relu(x)
+            elif activ_func1 == "linear":
+                pass
 
-        return x,lyr1, lyr2
+            lyr1 = x
+            x = self.LNL_model(x)  
+            x = self.relu(x)
+            if activ_func2 == "linear":
+                x = self.activation(x)
+            elif activ_func2 == "2sig":
+                x = self.double_sigmoid(x)
+            else:
+                x = self.relu(x)
+            #x = self.activation2(-5*(x+0.1))
+            #x = self.activation2(5*(x-0.1))
+            lyr2 = x
+            x = self.dropout(x)  # Apply dropout after hidden layer
+            x = self.layer3(x)
+            x = self.relu(x)
 
+            return x,lyr1, lyr2
+
+    return AutoEncoder
 # # define a custom double sigmoid activation function using pytorch built in sigmoid for fast gradient computation
 # class DoubleSigmoid(nn.Module):
 #     def __init__(self, alpha1=1.0, beta1=0.1, alpha2=-1.0, beta2=0.1):
@@ -50,11 +75,13 @@ class AutoEncoder(nn.Module):
 #         sigmoid2 = self.sigmoid(self.alpha2 * x + self.beta2)
 #         return sigmoid1 + sigmoid2
     
-if __name__ == "__main__":
+def train_and_save(n_epochs,AutoEncoder,mult_lr = True):
+    from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
     # # Number of epochs
-    n_epochs = 50
-    #learning_rates = [0.01, 0.001, 0.0001, 0.00001]
-    learning_rates = [0.0001]
+    if mult_lr:
+        learning_rates = [0.01, 0.001, 0.0001, 0.00001]
+    else:
+        learning_rates = [0.0001]
     train_err = torch.zeros(n_epochs + 1,len(learning_rates))
     val_err = torch.zeros(n_epochs + 1,len(learning_rates))
     Autoencoders = []

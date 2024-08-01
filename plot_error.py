@@ -2,13 +2,13 @@ import os
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from LNL import W_d
+#from LNL import W_d
 import math
 
 import torch
 import torch.nn as nn
-from LNL import LNL_model_path  # Import LNL_model from LNL script
-from Full_model import AutoEncoder
+#from LNL import LNL_model_path  # Import LNL_model from LNL script
+#from Full_model import AutoEncoder
 cwd = os.getcwd()
 # with open(cwd + '/data/NN_output_50epochs.pkl', 'rb') as file:
 #     data = pickle.load(file)
@@ -19,51 +19,51 @@ cwd = os.getcwd()
 #     data = pickle.load(file)
 
 #     print(data)
+def show_error(data_path,model_descrip):
+    with open(data_path, 'rb') as file:
+        data = pickle.load(file)
 
-with open(cwd + '/data/NN_output.pkl', 'rb') as file:
-    data = pickle.load(file)
+        #print(data[0])
 
-    #print(data[0])
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-
-N_epoch = data[0].shape[0]
-x = np.arange(1, N_epoch + 1)
-labels = ['lr=0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
+    N_epoch = data[0].shape[0]
+    x = np.arange(1, N_epoch + 1)
+    labels = ['lr=0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
 
 
-log_data = data
-for i in range(data[0].shape[1]) :
-    for j in range(data[0].shape[0]):
+    log_data = data
+    for i in range(data[0].shape[1]) :
+        for j in range(data[0].shape[0]):
 
-        log_data[0][j,i] = math.log(data[0][j,i])
-    #print(i)
-    ax1.plot(x, log_data[0][:,i], label=labels[i])
+            log_data[0][j,i] = math.log(data[0][j,i])
+        #print(i)
+        ax1.plot(x, log_data[0][:,i], label=labels[i])
 
-ax1.set_xlabel('Epochs')
-ax1.set_ylabel('Log Scale Error')
-ax1.set_title('Training Loss over 50 Epochs: Linear+2sig')
-ax1.set_ylim(-5, 0)
-ax1.legend()
+    ax1.set_xlabel('Epochs')
+    ax1.set_ylabel('Log Scale Error')
+    ax1.set_title(f'Training Loss over 50 Epochs: {model_descrip}')
+    ax1.set_ylim(-5, 0)
+    ax1.legend()
 
-for i in range(data[1].shape[1]) :
-    for j in range(data[1].shape[0]):
+    for i in range(data[1].shape[1]) :
+        for j in range(data[1].shape[0]):
 
-        log_data[1][j,i] = math.log(data[1][j,i])
-    #print(i)
-    ax2.plot(x, log_data[1][:,i], label=labels[i])
+            log_data[1][j,i] = math.log(data[1][j,i])
+        #print(i)
+        ax2.plot(x, log_data[1][:,i], label=labels[i])
 
-ax2.set_xlabel('Epochs')
-ax2.set_ylabel('Log Scale Error')
-ax2.set_title('Validation Loss over 50 Epochs: Linear+2sig')
-ax2.set_ylim(-5, 0)
-ax2.legend()
+    ax2.set_xlabel('Epochs')
+    ax2.set_ylabel('Log Scale Error')
+    ax2.set_title(f'Validation Loss over 50 Epochs: {model_descrip}')
+    ax2.set_ylim(-5, 0)
+    ax2.legend()
 
-# Adjust layout
-plt.tight_layout()
+    # Adjust layout
+    plt.tight_layout()
 
-# Show plot
-plt.show(block=True)
+    # Show plot
+    plt.show(block=True)
 
 
 

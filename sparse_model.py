@@ -17,6 +17,7 @@ class custom_loss(nn.Module):
         return loss
     
 # Define Full model, in which the weights from LNL model is inherited
+drop_rate = 0.2 
 class AutoEncoder(nn.Module):
     def __init__(self):
         super(AutoEncoder, self).__init__()   
@@ -26,35 +27,39 @@ class AutoEncoder(nn.Module):
         self.activation = nn.ReLU()
         self.LNL_model.load_state_dict(torch.load(LNL_model_path))
         self.activation2 = nn.Sigmoid()
-    def forward(self, x, return_neu_activ = False):
+        self.dropout = nn.Dropout(p=drop_rate)
+    def forward(self, x):
+        
         x = self.layer1(x) 
         #x = self.activation(x)
+        lyr1 = x
         x = self.LNL_model(x)  
         x = self.activation(x)
-        neu_activ = x
-
+        #x = self.activation2(-5*(x+0.1))
+        #x = self.activation2(5*(x-0.1))
+        lyr2 = x
+        x = self.dropout(x)  # Apply dropout after hidden layer
         x = self.layer3(x)
         x = self.activation(x)
-        if return_neu_activ:
-            return x,neu_activ
-        return x
+
+        return x,lyr1, lyr2
 _lambda = 0.01
 
 if __name__ == "__main__":
     # # Number of epochs
     sparse_activ = custom_loss()
     n_epochs = 50
-    learning_rates = [0.01, 0.001, 0.0001, 0.00001]
-    train_err = torch.zeros(n_epochs,len(learning_rates))
-    val_err = torch.zeros(n_epochs,len(learning_rates))
+    #learning_rates = [0.01, 0.001, 0.0001, 0.00001]
+    learning_rates = [0.0001]
+    train_err = torch.zeros(n_epochs + 1,len(learning_rates))
+    val_err = torch.zeros(n_epochs + 1,len(learning_rates))
     Autoencoders = []
 
     for i, learning_rate in enumerate(learning_rates):
             # Define Model
         basic_autoencoder = AutoEncoder()
 
-        # Define a loss function
-        criterion = nn.MSELoss()  # mean squared loss, eucledian
+        criterion = nn.MSELoss()
 
         # Define an optimizer, specifying only the parameters of fc2 and fc3
         optimizer = torch.optim.Adam([
@@ -69,7 +74,7 @@ if __name__ == "__main__":
                 optimizer.zero_grad()
 
                 # Forward pass
-                output,neu_activ = basic_autoencoder(input,return_neu_activ = True)
+                output,_,neu_activ = basic_autoencoder(input)
 
                 # Compute loss
                 loss = sparse_activ(input, output,neu_activ, _lambda)
@@ -82,16 +87,17 @@ if __name__ == "__main__":
             if (epoch+1) % 10 == 0:  # Print every 10 epochs
                 print(f'Epoch [{epoch+1}/{n_epochs}], Loss: {loss.item():.4f}')
             # training data
-            output_train = basic_autoencoder(cifar100_train_tsr_flat)
+            output_train,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
             train_loss = criterion(output_train, cifar100_train_tsr_flat)
-            train_err[epoch,i] = train_loss.item()
+            train_err[epoch+1,i] = train_loss.item()
         
             # validation data
-            output_test = basic_autoencoder(cifar100_train_tsr_flat)
+            output_test,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
             val_loss = criterion(output_test, cifar100_train_tsr_flat)
-            val_err[epoch,i] = val_loss.item()
+            val_err[epoch+1,i] = val_loss.item()
         Autoencoders.append(basic_autoencoder)
 
+    train_err[0], val_err [0] = cifar100_train_tsr_flat.mean(),cifar100_test_tsr_flat.mean()
     # save the result in the data folder
     cwd = os.getcwd()
     data_dir = cwd + '/data'

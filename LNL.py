@@ -10,8 +10,8 @@ import os
 
 # initialise the grid size, neuron array size, electrode array size. All assumed to be sqaure
 grid_side_dim = 10
-elec_side_dim = 8
-neu_side_dim = 16
+# elec_side_dim = 10
+# neu_side_dim = 16
 #==============================================================================================================
 # Generate Cartesian Cooordnates for Electrodes array and Neurons 
 #==============================================================================================================
@@ -57,93 +57,90 @@ def get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spr
             
     return W_d
 
-def relu_nonlinearity(xx):
-    return np.maximum(0,xx)
-
-activ_spread = 0
-current_spread = 1
-W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM=True)
-
-#==============================================================================================================
-# Initialising the randomised electrical stimulus (NL of the LNL LNL_model)
-#==============================================================================================================
-#%%  Generate Random Stimulus patterns
-Ne = elec_side_dim**2
-
-nTrain = 50000 
-nVal = 5000
-nTest = 1000
-
-train_stims = np.random.normal(0, 0.3, (nTrain, elec_side_dim,elec_side_dim))
-val_stims = np.random.normal(0, 0.3, (nVal, elec_side_dim,elec_side_dim))
-test_stims = np.random.normal(0, 0.3, (nTest, elec_side_dim,elec_side_dim))
-
-single_stim = np.zeros((elec_side_dim, elec_side_dim))
-single_stim[int(elec_side_dim/2), int(elec_side_dim/2)] = 1
-test_stims[0, :,:] = single_stim
-        
-train_stims_v = train_stims.reshape(nTrain, Ne)
-val_stims_v = val_stims.reshape(nVal, Ne)
-test_stims_v = test_stims.reshape(nTest, Ne)
-
-#==============================================================================================================
-# Get the Output from the LNL LNL_model (NL of the LNL LNL_model)
-#==============================================================================================================
-
-Gs_ret_train = np.dot(W_d, train_stims_v.transpose())
-real_activ_ret_Train = relu_nonlinearity(Gs_ret_train)
-
-Gs_ret_val = np.dot(W_d, val_stims_v.transpose())
-real_activ_ret_Val = relu_nonlinearity(Gs_ret_val)
-
-Gs_ret_test = np.dot(W_d, test_stims_v.transpose())
-real_activ_ret_Test = relu_nonlinearity(Gs_ret_test)  
-
-# temporary generation of coordinates
-_,_,_,_,x_neu, y_neu, x_elec, y_elec= get_neu_and_elec_coord(neu_side_dim, elec_side_dim,grid_side_dim)
 
 
+if __name__ == "__main__":
+    def relu_nonlinearity(xx):
+        return np.maximum(0,xx)
+    activ_spread = 0
+    current_spread = 1
+    W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM=True)
 
+    #==============================================================================================================
+    # Initialising the randomised electrical stimulus (NL of the LNL LNL_model)
+    #==============================================================================================================
+    #%%  Generate Random Stimulus patterns
+    Ne = elec_side_dim**2
 
-class SingleLayerNetwork(nn.Module):
-    def __init__(self, n_input, n_output):
-        super(SingleLayerNetwork, self).__init__()
-        # Define a single linear layer
-        self.LNL = nn.Linear(n_input, n_output,bias=False)
-        # Optionally add an activation function
-        self.activation = nn.ReLU()
-        
-    def forward(self, x):
-        # Forward pass through the linear layer
-        x = self.LNL(x)
-        # Apply activation function
-        x = self.activation(x)
-        return x
+    nTrain = 50000 
+    nVal = 5000
+    nTest = 1000
+
+    train_stims = np.random.normal(0, 0.3, (nTrain, elec_side_dim,elec_side_dim))
+    val_stims = np.random.normal(0, 0.3, (nVal, elec_side_dim,elec_side_dim))
+    test_stims = np.random.normal(0, 0.3, (nTest, elec_side_dim,elec_side_dim))
+
+    single_stim = np.zeros((elec_side_dim, elec_side_dim))
+    single_stim[int(elec_side_dim/2), int(elec_side_dim/2)] = 1
+    test_stims[0, :,:] = single_stim
+            
+    train_stims_v = train_stims.reshape(nTrain, Ne)
+    val_stims_v = val_stims.reshape(nVal, Ne)
+    test_stims_v = test_stims.reshape(nTest, Ne)
+
+    #==============================================================================================================
+    # Get the Output from the LNL LNL_model (NL of the LNL LNL_model)
+    #==============================================================================================================
+
+    Gs_ret_train = np.dot(W_d, train_stims_v.transpose())
+    real_activ_ret_Train = relu_nonlinearity(Gs_ret_train)
+
+    Gs_ret_val = np.dot(W_d, val_stims_v.transpose())
+    real_activ_ret_Val = relu_nonlinearity(Gs_ret_val)
+
+    Gs_ret_test = np.dot(W_d, test_stims_v.transpose())
+    real_activ_ret_Test = relu_nonlinearity(Gs_ret_test)  
+
+    # temporary generation of coordinates
+    _,_,_,_,x_neu, y_neu, x_elec, y_elec= get_neu_and_elec_coord(neu_side_dim, elec_side_dim,grid_side_dim)
 
 
 
+def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_spread, current_spread,FHWM):
+    import torch
+    import torch.nn as nn
+
+    activ_spread = 0
+    current_spread = 1
+    W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM)
+
+    class SingleLayerNetwork(nn.Module):
+        def __init__(self, n_input, n_output):
+            super(SingleLayerNetwork, self).__init__()
+            # Define a single linear layer
+            self.LNL = nn.Linear(n_input, n_output,bias=False)
+            # Optionally add an activation function
+            self.activation = nn.ReLU()
+            
+        def forward(self, x):
+            # Forward pass through the linear layer
+            x = self.LNL(x)
+            # Apply activation function
+            x = self.activation(x)
+            return x
+
+    # Model initialization
+    n_input = elec_side_dim**2
+    n_output = 256
+    LNL_model = SingleLayerNetwork(n_input, n_output)
 
 
+    # Hard coded weights
+    with torch.no_grad():  # Disable gradient tracking
+        # Set specific weights
+        LNL_model.LNL.weight = nn.Parameter(torch.tensor(W_d, dtype=torch.float32))
 
-# Model initialization
-n_input = 64
-n_output = 256
-LNL_model = SingleLayerNetwork(n_input, n_output)
-
-
-
-# Hard coded weights
-with torch.no_grad():  # Disable gradient tracking
-    # Set specific weights
-    LNL_model.LNL.weight = nn.Parameter(torch.tensor(W_d, dtype=torch.float32))
-
-
-
-cwd = os.getcwd()    
-LNL_model_path = cwd+'/data/LNL_model.pth'
-if not os.path.exists(cwd+'/data'):
-    os.makedirs(cwd+'/data')
-torch.save(LNL_model.LNL.state_dict(), LNL_model_path)
+    torch.save(LNL_model.LNL.state_dict(), LNL_model_path)
 #########################################################################################################################
 # Code block below is for training the neural network with inputs and outputs instead of hard coding the weights
 #########################################################################################################################

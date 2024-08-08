@@ -75,60 +75,12 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
                 axs[i,j].set_title(f'original image')
             fig.colorbar(img, ax=axs[i, j], fraction=0.046, pad=0.04)    
     fig.suptitle(f"Image Reconstruction Comparison:{model_descrip}", fontsize=16) 
+    plt.savefig(f"{model_descrip}_recons.png", format='png')
     plt.show()
 
 
-def visualize_weights(model):
-    layers = [model.layer1, model.LNL_model, model.layer3]
-    fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
 
-    for i, layer in enumerate(layers):
-        weights = layer.weight.data.numpy()
-        axs[i].imshow(weights.transpose(), aspect='equal', cmap='gray')
-        axs[i].set_title(f'Layer {i + 1} Weights')
-        axs[i].set_xlabel('Neurons')
-        axs[i].set_ylabel('Input Features')
-        fig.colorbar(axs[i].images[0], ax=axs[i])
-
-    plt.show()
 
 
  #visualize_weights(model_loaded)
 
-def visualize_img_recep(model_path, AutoEncoder, img_side_dim, elec_side_dim):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-    state_dict = torch.load(model_path)
-
-    # Instantiate a new model of the same architecture
-    model_loaded = AutoEncoder()
-
-    # Load the state dictionary into the model
-    model_loaded.load_state_dict(state_dict)
-
-    fig, axs = plt.subplots(elec_side_dim, elec_side_dim,figsize=(25, 25))
-    axs = axs.flatten()
-    for i in range(elec_side_dim**2):
-        weights = model_loaded.layer1.weight.data.numpy()
-        curr_recep = np.squeeze(weights[i,:])
-        curr_recep = curr_recep.reshape(img_side_dim, img_side_dim)
-        img = axs[i].imshow(curr_recep, aspect='equal', cmap='gray')
-        axs[i].set_title(f'Electrode {i + 1}')
-        #axs[i].set_xlabel('Neurons')
-        #axs[i].set_ylabel('Input Features')
-        axs[i].set_xticks([])
-        axs[i].set_yticks([])
-        divider = make_axes_locatable(axs[i])
-        
-        # Append an axes to the right of the current axes with the same height
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        
-        # Create the colorbar in the new axes
-        fig.colorbar(img, cax=cax)
-    fig.suptitle('Image Receptive Fields', fontsize=16)
-    plt.tight_layout()  # Add space for the title
-    plt.show()
-
-# Visualize the weights of the model
-    #visualize_img_recep(model_loaded)

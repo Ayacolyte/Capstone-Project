@@ -8,8 +8,18 @@ import time
 #from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
 #import matplotlib.pyplot as plt
 
-#drop_rate = 0.2
-# Define Full model, in which the weights from LNL model is inherited
+drop_rate = 0.2
+
+
+# custom loss function
+class custom_loss(nn.Module):
+    def __init__(self):
+        super(custom_loss, self).__init__()
+    
+    def forward(self, inputs, targets,neu_activ, _lambda):
+        loss = torch.mean((targets - inputs)**2)/2 + _lambda * torch.sum(neu_activ)
+        return loss
+# double sigmoid activation function
 class DoubleSigmoid(nn.Module):
     def __init__(self, shift, magnitude):
         super(DoubleSigmoid, self).__init__()
@@ -21,7 +31,7 @@ class DoubleSigmoid(nn.Module):
         sigmoid2 = torch.sigmoid(-1*self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
-def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude):
+def define_model_sparse(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude):
     
     class AutoEncoder(nn.Module):
         def __init__(self):
@@ -75,8 +85,9 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_fu
 #         sigmoid2 = self.sigmoid(self.alpha2 * x + self.beta2)
 #         return sigmoid1 + sigmoid2
     
-def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
+def train_and_save_sparse(n_epochs,AutoEncoder,_lambda,mult_lr = True):
     from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
+    sparse_activ = custom_loss()
     # # Number of epochs
     if mult_lr:
         learning_rates = [0.01, 0.001, 0.0001, 0.00001]
@@ -106,10 +117,10 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
                 optimizer.zero_grad()
 
                 # Forward pass
-                outputs,_, _ = basic_autoencoder(input)
+                output,_,neu_activ = basic_autoencoder(input)
 
                 # Compute loss
-                loss = criterion(outputs, input)
+                loss = sparse_activ(input, output,neu_activ, _lambda)
 
                 # Backward pass and optimize
                 loss.backward()
@@ -145,33 +156,7 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
     labels = ['lr = 0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
     for idx, model in enumerate(Autoencoders):
         if len(Autoencoders) == 1:
-            model_path = cwd+f'/data/model_{model_title}_lr = 0.0001.pth'
+            model_path = cwd+f'/data/model_lr = 0.0001.pth'
         else:
-            model_path = cwd+f'/data/model_{model_title}_{labels[idx]}.pth'
+            model_path = cwd+f'/data/model_{labels[idx]}.pth'
         torch.save(model.state_dict(), model_path)
-
-
-# labels = ['lr=0.1', 'lr = 0.01', 'lr = 0.001', 'lr = 0.0001']
-# # Create the bar plot
-# fig, axs = plt.subplots(1, 2, figsize=(14, 6))
-
-# # Plot the first vector
-# axs[0].bar(labels, train_err, color='blue')
-# axs[0].set_title('Training Error Visualization')
-# axs[0].set_xlabel('Learning Rates')
-# axs[0].set_ylabel('Error')
-
-# # Plot the second vector
-# axs[1].bar(labels, val_err, color='green')
-# axs[1].set_title('Validation Error Visualization')
-# axs[1].set_xlabel('Learning Rates')
-# axs[1].set_ylabel('Error')
-
-# # Adjust layout
-# plt.tight_layout()
-
-# # Show the plot and keep the plot open
-# plt.show(block=False)
-# while plt.fignum_exists(1):
-#     plt.pause(0.1)
-#     time.sleep(0.1)  

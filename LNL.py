@@ -42,7 +42,7 @@ def get_neu_and_elec_coord(neu_side_dim,elec_side_dim,grid_side_dim):
 #==============================================================================================================
 # Get the Linear Transform Matrix (L of the LNL LNL_model)
 #==============================================================================================================
-def get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM = False):
+def get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM):
 
     x_neu_flat, y_neu_flat, x_elec_flat, y_elec_flat,_,_,_,_= get_neu_and_elec_coord(neu_side_dim, elec_side_dim,grid_side_dim)
     #print(x_neu_flat.shape, x_elec_flat.shape, y_neu_flat.shape, y_elec_flat.shape)
@@ -59,50 +59,44 @@ def get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spr
 
 
 
-if __name__ == "__main__":
-    def relu_nonlinearity(xx):
-        return np.maximum(0,xx)
-    activ_spread = 0
-    current_spread = 1
-    W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM=True)
 
     #==============================================================================================================
     # Initialising the randomised electrical stimulus (NL of the LNL LNL_model)
     #==============================================================================================================
-    #%%  Generate Random Stimulus patterns
-    Ne = elec_side_dim**2
+    # #%%  Generate Random Stimulus patterns
+    # Ne = elec_side_dim**2
 
-    nTrain = 50000 
-    nVal = 5000
-    nTest = 1000
+    # nTrain = 50000 
+    # nVal = 5000
+    # nTest = 1000
 
-    train_stims = np.random.normal(0, 0.3, (nTrain, elec_side_dim,elec_side_dim))
-    val_stims = np.random.normal(0, 0.3, (nVal, elec_side_dim,elec_side_dim))
-    test_stims = np.random.normal(0, 0.3, (nTest, elec_side_dim,elec_side_dim))
+    # train_stims = np.random.normal(0, 0.3, (nTrain, elec_side_dim,elec_side_dim))
+    # val_stims = np.random.normal(0, 0.3, (nVal, elec_side_dim,elec_side_dim))
+    # test_stims = np.random.normal(0, 0.3, (nTest, elec_side_dim,elec_side_dim))
 
-    single_stim = np.zeros((elec_side_dim, elec_side_dim))
-    single_stim[int(elec_side_dim/2), int(elec_side_dim/2)] = 1
-    test_stims[0, :,:] = single_stim
+    # single_stim = np.zeros((elec_side_dim, elec_side_dim))
+    # single_stim[int(elec_side_dim/2), int(elec_side_dim/2)] = 1
+    # test_stims[0, :,:] = single_stim
             
-    train_stims_v = train_stims.reshape(nTrain, Ne)
-    val_stims_v = val_stims.reshape(nVal, Ne)
-    test_stims_v = test_stims.reshape(nTest, Ne)
+    # train_stims_v = train_stims.reshape(nTrain, Ne)
+    # val_stims_v = val_stims.reshape(nVal, Ne)
+    # test_stims_v = test_stims.reshape(nTest, Ne)
 
-    #==============================================================================================================
-    # Get the Output from the LNL LNL_model (NL of the LNL LNL_model)
-    #==============================================================================================================
+    # #==============================================================================================================
+    # # Get the Output from the LNL LNL_model (NL of the LNL LNL_model)
+    # #==============================================================================================================
 
-    Gs_ret_train = np.dot(W_d, train_stims_v.transpose())
-    real_activ_ret_Train = relu_nonlinearity(Gs_ret_train)
+    # Gs_ret_train = np.dot(W_d, train_stims_v.transpose())
+    # real_activ_ret_Train = relu_nonlinearity(Gs_ret_train)
 
-    Gs_ret_val = np.dot(W_d, val_stims_v.transpose())
-    real_activ_ret_Val = relu_nonlinearity(Gs_ret_val)
+    # Gs_ret_val = np.dot(W_d, val_stims_v.transpose())
+    # real_activ_ret_Val = relu_nonlinearity(Gs_ret_val)
 
-    Gs_ret_test = np.dot(W_d, test_stims_v.transpose())
-    real_activ_ret_Test = relu_nonlinearity(Gs_ret_test)  
+    # Gs_ret_test = np.dot(W_d, test_stims_v.transpose())
+    # real_activ_ret_Test = relu_nonlinearity(Gs_ret_test)  
 
-    # temporary generation of coordinates
-    _,_,_,_,x_neu, y_neu, x_elec, y_elec= get_neu_and_elec_coord(neu_side_dim, elec_side_dim,grid_side_dim)
+    # # temporary generation of coordinates
+    # _,_,_,_,x_neu, y_neu, x_elec, y_elec= get_neu_and_elec_coord(neu_side_dim, elec_side_dim,grid_side_dim)
 
 
 
@@ -110,8 +104,7 @@ def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_sprea
     import torch
     import torch.nn as nn
 
-    activ_spread = 0
-    current_spread = 1
+
     W_d = get_linear_ERF_mapping(neu_side_dim, elec_side_dim, grid_side_dim, activ_spread,current_spread, FHWM)
 
     class SingleLayerNetwork(nn.Module):
@@ -120,13 +113,13 @@ def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_sprea
             # Define a single linear layer
             self.LNL = nn.Linear(n_input, n_output,bias=False)
             # Optionally add an activation function
-            self.activation = nn.ReLU()
+            #self.activation = nn.ReLU()
             
         def forward(self, x):
             # Forward pass through the linear layer
             x = self.LNL(x)
             # Apply activation function
-            x = self.activation(x)
+            #x = self.activation(x)
             return x
 
     # Model initialization
@@ -141,6 +134,62 @@ def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_sprea
         LNL_model.LNL.weight = nn.Parameter(torch.tensor(W_d, dtype=torch.float32))
 
     torch.save(LNL_model.LNL.state_dict(), LNL_model_path)
+    if __name__ == "__main__":
+        test_dot_np = np.zeros((elec_side_dim, elec_side_dim))
+        test_dot_np[int(elec_side_dim/2), int(elec_side_dim/2)] = 1
+        test_dot = torch.tensor(test_dot_np[:], dtype=torch.float32)
+        test_dot_flat = test_dot.reshape(1,elec_side_dim**2)
+
+        test_4dot_np = np.zeros((elec_side_dim, elec_side_dim))
+        positions = [
+        (elec_side_dim // 4, elec_side_dim // 4),
+        (elec_side_dim // 4, 3 * elec_side_dim // 4),
+        (3 * elec_side_dim // 4, elec_side_dim // 4),
+        (3 * elec_side_dim // 4, 3 * elec_side_dim // 4)
+        ]
+        for (x, y) in positions:
+            test_4dot_np[x, y] = 1.0
+        test_4dot = torch.tensor(test_4dot_np[:], dtype=torch.float32)
+        test_4dot_flat = test_4dot.reshape(1,elec_side_dim**2)
+        with torch.no_grad():
+            # Get the LNL_model's prediction
+            test_4dot_output = LNL_model(test_4dot_flat)
+            test_dot_output = LNL_model(test_dot_flat)
+        plt.subplot(2, 2, 1)
+        plt.title("Input Image")
+        plt.imshow(test_dot, cmap='gray')
+
+        plt.subplot(2, 2, 2)
+        plt.title("Model Output")
+        plt.imshow(test_dot_output.detach().numpy().reshape(neu_side_dim,neu_side_dim), cmap='gray')
+
+        plt.subplot(2, 2, 3)
+        plt.title("Input Image")
+        plt.imshow(test_4dot_np, cmap='gray')
+
+        plt.subplot(2, 2, 4)
+        plt.title("Model Output")
+        plt.imshow(test_4dot_output.detach().numpy().reshape(neu_side_dim,neu_side_dim), cmap='gray')
+
+        plt.show()
+
+if __name__ == "__main__":
+    cwd = os.getcwd()
+    LNL_model_path = cwd+'/data/LNL_model.pth'
+    # whether to use curated resolvable gaussian radius of ERF
+    FHWM=False
+    # if not define current spread arbitrarily here
+    current_spread = 1
+    # define the electrode grid
+    elec_side_dim = 8
+    activ_spread= 0.1
+    #define neuron grid
+    neu_side_dim = 16
+
+    # define the LNL layer with gaussian electrical receptive field
+    define_save_LNL_model(LNL_model_path,elec_side_dim, neu_side_dim, activ_spread, current_spread,FHWM)
+
+
 #########################################################################################################################
 # Code block below is for training the neural network with inputs and outputs instead of hard coding the weights
 #########################################################################################################################

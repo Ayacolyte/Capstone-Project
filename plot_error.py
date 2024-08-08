@@ -61,7 +61,7 @@ def show_error(data_path,model_descrip):
 
     # Adjust layout
     plt.tight_layout()
-
+    plt.savefig(f'{model_descrip}_Error.png', format='png')
     # Show plot
     plt.show(block=True)
 

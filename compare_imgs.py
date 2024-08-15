@@ -26,6 +26,7 @@ import math
 # plt.show()
 def show_img_compare(model_path, AutoEncoder,model_descrip):
     from Natural_Images import cifar100_test,loader2tensor
+    import matplotlib.colors as mcolors
     state_dict = torch.load(model_path)
 
     # Instantiate a new model of the same architecture
@@ -38,7 +39,9 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
     cifar100_test_tsr= loader2tensor(cifar100_test,flatten=False)
     cifar100_test_np = cifar100_test_tsr.detach().numpy()
 
-    output_test_flat, layer1_flat, layer2_flat = model_loaded(cifar100_test_tsr_flat)
+    model_loaded.eval()
+    with torch.no_grad():
+        output_test_flat, layer1_flat, layer2_flat = model_loaded(cifar100_test_tsr_flat)
 
     side_dim = int(math.sqrt(output_test_flat.shape[1]))
     output = output_test_flat.view(output_test_flat.shape[0],side_dim,side_dim)
@@ -51,7 +54,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
     side_dim = int(math.sqrt(layer2_flat.shape[1]))
     layer2 = layer2_flat.view(layer2_flat.shape[0],side_dim,side_dim)
     layer2_np = layer2.detach().numpy()
-
+    cmap_custom = mcolors.LinearSegmentedColormap.from_list('red_blue', ['blue', 'white', 'red'])
     # plot reconstructions
     fig, axs = plt.subplots(4, 5,figsize=(15, 6))
     for i in range(4):
@@ -66,7 +69,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Neural Activation')
             elif i == 1:
-                img = axs[i,j].imshow(layer1_np[4*j],cmap='gray')
+                img = axs[i,j].imshow(layer1_np[4*j],cmap=cmap_custom)
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Electrodes Activation')
             elif i == 0:
@@ -77,7 +80,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
     fig.suptitle(f"Image Reconstruction Comparison:{model_descrip}", fontsize=16) 
     plt.savefig(f"{model_descrip}_recons.png", format='png')
     plt.show()
-
+    return output_test_flat, layer1_flat, layer2_flat
 
 
 

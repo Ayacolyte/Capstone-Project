@@ -173,6 +173,8 @@ def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_sprea
 
         plt.show()
 
+    return W_d
+
 if __name__ == "__main__":
     cwd = os.getcwd()
     LNL_model_path = cwd+'/data/LNL_model.pth'

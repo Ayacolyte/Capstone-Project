@@ -27,8 +27,8 @@ class DoubleSigmoid(nn.Module):
         self.magnitude = magnitude
 
     def forward(self, x):
-        sigmoid1 = torch.sigmoid(self.magnitude * (x + self.shift))
-        sigmoid2 = torch.sigmoid(-1*self.magnitude * (x - self.shift))
+        sigmoid1 = torch.sigmoid(-1*self.magnitude * (x + self.shift))
+        sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
 def define_model_sparse(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude):
@@ -36,9 +36,9 @@ def define_model_sparse(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, a
     class AutoEncoder(nn.Module):
         def __init__(self):
             super(AutoEncoder, self).__init__()   
-            self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=False)
+            self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=True)
             self.LNL_model = nn.Linear(elec_side_dim**2, neu_side_dim**2, bias=False)
-            self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=False)
+            self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=True)
             self.relu = nn.ReLU()
             self.LNL_model.load_state_dict(torch.load(LNL_model_path))
             #self.activation2 = nn.Sigmoid()
@@ -53,7 +53,6 @@ def define_model_sparse(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, a
 
             lyr1 = x
             x = self.LNL_model(x)  
-            x = self.relu(x)
             if activ_func2 == "linear":
                 x = self.activation(x)
             elif activ_func2 == "2sig":
@@ -85,7 +84,7 @@ def define_model_sparse(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, a
 #         sigmoid2 = self.sigmoid(self.alpha2 * x + self.beta2)
 #         return sigmoid1 + sigmoid2
     
-def train_and_save_sparse(n_epochs,AutoEncoder,_lambda,mult_lr = True):
+def train_and_save_sparse(n_epochs,AutoEncoder,model_title,_lambda,mult_lr = True):
     from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
     sparse_activ = custom_loss()
     # # Number of epochs
@@ -101,7 +100,7 @@ def train_and_save_sparse(n_epochs,AutoEncoder,_lambda,mult_lr = True):
             # Define Model
         basic_autoencoder = AutoEncoder()
 
-        # Define a loss function
+        # Define a loss function for evaluation only
         criterion = nn.MSELoss()  # mean squared loss, eucledian
 
         # Define an optimizer, specifying only the parameters of fc2 and fc3
@@ -120,7 +119,7 @@ def train_and_save_sparse(n_epochs,AutoEncoder,_lambda,mult_lr = True):
                 output,_,neu_activ = basic_autoencoder(input)
 
                 # Compute loss
-                loss = sparse_activ(input, output,neu_activ, _lambda)
+                loss = sparse_activ(output,input,neu_activ, _lambda)
 
                 # Backward pass and optimize
                 loss.backward()
@@ -148,15 +147,15 @@ def train_and_save_sparse(n_epochs,AutoEncoder,_lambda,mult_lr = True):
     # Create the directory if it doesn't exist
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-    
-    file_path = os.path.join(data_dir, 'NN_output.pkl')
+        
+    file_path = os.path.join(data_dir, f'NN_{model_title}_output.pkl')
     with open(file_path, 'wb') as f:
         pickle.dump((train_err, val_err), f)
     
     labels = ['lr = 0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
     for idx, model in enumerate(Autoencoders):
         if len(Autoencoders) == 1:
-            model_path = cwd+f'/data/model_lr = 0.0001.pth'
+            model_path = cwd+f'/data/model_{model_title}_lr = 0.0001.pth'
         else:
-            model_path = cwd+f'/data/model_{labels[idx]}.pth'
+            model_path = cwd+f'/data/model_{model_title}_{labels[idx]}.pth'
         torch.save(model.state_dict(), model_path)

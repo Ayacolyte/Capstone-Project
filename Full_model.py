@@ -17,8 +17,8 @@ class DoubleSigmoid(nn.Module):
         self.magnitude = magnitude
 
     def forward(self, x):
-        sigmoid1 = torch.sigmoid(self.magnitude * (x + self.shift))
-        sigmoid2 = torch.sigmoid(-1*self.magnitude * (x - self.shift))
+        sigmoid1 = torch.sigmoid(-1*self.magnitude * (x + self.shift))
+        sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
 def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude):
@@ -26,12 +26,11 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_fu
     class AutoEncoder(nn.Module):
         def __init__(self):
             super(AutoEncoder, self).__init__()   
-            self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=False)
+            self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=True)
             self.LNL_model = nn.Linear(elec_side_dim**2, neu_side_dim**2, bias=False)
-            self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=False)
+            self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=True)
             self.relu = nn.ReLU()
             self.LNL_model.load_state_dict(torch.load(LNL_model_path))
-            #self.activation2 = nn.Sigmoid()
             self.dropout = nn.Dropout(p=drop_rate)
             self.double_sigmoid = DoubleSigmoid(shift, magnitude)
         def forward(self, x):
@@ -40,18 +39,15 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_fu
                 x = self.relu(x)
             elif activ_func1 == "linear":
                 pass
-
             lyr1 = x
             x = self.LNL_model(x)  
-            x = self.relu(x)
             if activ_func2 == "linear":
-                x = self.activation(x)
+                pass
             elif activ_func2 == "2sig":
+                #print("2sig used")
                 x = self.double_sigmoid(x)
             else:
                 x = self.relu(x)
-            #x = self.activation2(-5*(x+0.1))
-            #x = self.activation2(5*(x-0.1))
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer
             x = self.layer3(x)
@@ -138,7 +134,7 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     
-    file_path = os.path.join(data_dir, 'NN_output.pkl')
+    file_path = os.path.join(data_dir, f'NN_{model_title}_output.pkl')
     with open(file_path, 'wb') as f:
         pickle.dump((train_err, val_err), f)
     

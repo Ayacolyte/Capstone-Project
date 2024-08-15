@@ -27,7 +27,7 @@ def visualize_weights(model,model_path):
 
     plt.show()
 
-def show_lnr_combination(model_path,AutoEncoder, activ_funcs, magnitude, shift, model_descrip):
+def show_generator(model_path,AutoEncoder, activ_funcs, magnitude, shift, model_descrip):
     # import input images
     from Natural_Images import cifar100_test,loader2tensor
 
@@ -60,56 +60,64 @@ def show_lnr_combination(model_path,AutoEncoder, activ_funcs, magnitude, shift, 
     x = np.linspace(-10, 10, 10000)
 
 
-    def activ_func(activ_func1, magnitude, shift):
-        if activ_func1 == "ReLU":
-            return np.maximum(0, x)
-        elif activ_func1 == "linear":
-            return x
-        elif activ_func1 == "2sig":
-            sigmoid1 = 1/(1+np.exp(magnitude * (x + shift)))
-            sigmoid2 = 1/(1+np.exp(-1*magnitude * (x - shift)))
-            return sigmoid1 + sigmoid2
-        
-    activs = []
-    for curr_activ_func in activ_funcs:
-        activs.append(activ_func(curr_activ_func, magnitude, shift))
 
-    def visualize_weights(model, activs):
+
+    def visualize_weights(model):
 
         layers = [model.layer1, model.LNL_model, model.layer3]
-        inputs = [cifar100_test_np_flat[0], layer1_flat_np[0], layer2_flat_np[0]]
+        inputs = [cifar100_test_np_flat, layer1_flat_np, layer2_flat_np]
         #activs = [activation_linear, activation_2sig, activation_ReLU]
         fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
 
         for i, layer in enumerate(layers):
             weights = layer.weight.data.numpy()
-            input_mat = np.array([])
-            for j in range(weights.shape[0]):
-                input = inputs[i]*weights[j,:]
-                input_mat = np.concatenate((input_mat, input))
+            if i == 1:
+                biases = [0]
+            else:
+                biases =  layer.bias.data.numpy()
+            input = inputs[i]
+            gnrtr_mat = []
+        
+            for j in range(input.shape[0]):
 
+                curr_generator_1stelec = np.dot(input[j,:],weights[0,:]) + biases[0]
+                gnrtr_mat.append(curr_generator_1stelec)
+            x = np.linspace(-1*max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))),max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))),40000)
+            def activ_func(activ_func1, magnitude, shift):
+                if activ_func1 == "ReLU":
+                    return np.maximum(0, x)
+                elif activ_func1 == "linear":
+                    return x
+                elif activ_func1 == "2sig":
+                    sigmoid1 = 1/(1+np.exp(magnitude * (x + shift)))
+                    sigmoid2 = 1/(1+np.exp(-1*magnitude * (x - shift)))
+                    return sigmoid1 + sigmoid2
+            
+            activs = []
+            for curr_activ_func in activ_funcs:
+                activs.append(activ_func(curr_activ_func, magnitude, shift))
             #print(weights.shape)
             #axs[i].imshow(weights, aspect='auto', cmap='gray')
-            axs[i].hist(input_mat, density = True, bins=50, color='blue', edgecolor='black', label='Weighed Input Distribution')
-            axs[i].set_title(f'Layer {i + 1} Weights')
-            axs[i].set_xlabel('Weights')
+            axs[i].hist(gnrtr_mat, density = True, bins=50, color='blue', edgecolor='black', label='Generator Function')
+            axs[i].set_title(f'Layer {i + 1} Generator Function')
+            axs[i].set_xlabel('Generator Function')
             axs[i].set_ylabel('Normalised Frequency')
             #axs[i].set_ylim(-0.5, 65)
-            axs[i].set_xlim(np.min(input_mat), np.max(input_mat))
+            axs[i].set_xlim(-1 * max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))),max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))))
 
             ax2 = axs[i].twinx()
             ax2.plot(x, activs[i], 'r', label='Activation Function')
-            ax2.set_ylim(-0.2, 0.5)
+            #ax2.set_ylim(-0.2, 2)
 
             axs[i].legend(loc='upper right', bbox_to_anchor=(1, 1), fontsize='small')
             ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.92), fontsize='small')
 
-        plt.suptitle(f"Weighed Input Distribution 1st electrode and Activation Functions:{model_descrip}")
-        plt.savefig(f"{model_descrip}_WIDandAF.png", format='png')
+        plt.suptitle(f"Generator Function Distribution 1st electrode and Activation Functions:{model_descrip}")
+        plt.savefig(f"{model_descrip}_GFandAF.png", format='png')
         plt.show()
 
     # Visualize the weights of the model
-    visualize_weights(model_loaded, activs)
+    visualize_weights(model_loaded)
 
 
 

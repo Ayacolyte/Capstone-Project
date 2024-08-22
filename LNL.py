@@ -140,6 +140,7 @@ def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_sprea
         test_dot = torch.tensor(test_dot_np[:], dtype=torch.float32)
         test_dot_flat = test_dot.reshape(1,elec_side_dim**2)
 
+        # set up visualisation of a scattered dots
         test_4dot_np = np.zeros((elec_side_dim, elec_side_dim))
         positions = [
         (elec_side_dim // 4, elec_side_dim // 4),
@@ -151,25 +152,40 @@ def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_sprea
             test_4dot_np[x, y] = 1.0
         test_4dot = torch.tensor(test_4dot_np[:], dtype=torch.float32)
         test_4dot_flat = test_4dot.reshape(1,elec_side_dim**2)
+
+        # set up visualisation of neighbour dots
+        test_neighbour_dots_np = np.zeros((elec_side_dim, elec_side_dim))
+        test_neighbour_dots_np[(3,3),(3,4)] = 1
+        test_neighbour_dots = torch.tensor(test_neighbour_dots_np[:], dtype=torch.float32)
+        test_neighbour_dots_flat = test_neighbour_dots.reshape(1,elec_side_dim**2)
         with torch.no_grad():
             # Get the LNL_model's prediction
+            test_neighbour_dots = LNL_model(test_neighbour_dots_flat)
             test_4dot_output = LNL_model(test_4dot_flat)
             test_dot_output = LNL_model(test_dot_flat)
         plt.subplot(2, 2, 1)
-        plt.title("Input Image")
-        plt.imshow(test_dot, cmap='gray')
+        plt.title("Single Electrode")
+        plt.axis('off')
+        img1 = plt.imshow(test_dot, cmap='gray')
+        plt.colorbar(img1, fraction=0.046, pad=0.04)
 
         plt.subplot(2, 2, 2)
-        plt.title("Model Output")
-        plt.imshow(test_dot_output.detach().numpy().reshape(neu_side_dim,neu_side_dim), cmap='gray')
+        plt.title("LNL output")
+        plt.axis('off')
+        img2 = plt.imshow(test_dot_output.detach().numpy().reshape(neu_side_dim,neu_side_dim), cmap='gray')
+        plt.colorbar(img2, fraction=0.046, pad=0.04)
 
         plt.subplot(2, 2, 3)
-        plt.title("Input Image")
-        plt.imshow(test_4dot_np, cmap='gray')
+        plt.title("Neighbour Electrode")
+        plt.axis('off')
+        img3 = plt.imshow(test_neighbour_dots_np, cmap='gray')
+        plt.colorbar(img3, fraction=0.046, pad=0.04)
 
         plt.subplot(2, 2, 4)
-        plt.title("Model Output")
-        plt.imshow(test_4dot_output.detach().numpy().reshape(neu_side_dim,neu_side_dim), cmap='gray')
+        plt.title("LNL output")
+        plt.axis('off')
+        img4 = plt.imshow(test_neighbour_dots.detach().numpy().reshape(neu_side_dim,neu_side_dim), cmap='gray')
+        plt.colorbar(img4, fraction=0.046, pad=0.04)
 
         plt.show()
 
@@ -181,10 +197,10 @@ if __name__ == "__main__":
     # whether to use curated resolvable gaussian radius of ERF
     FHWM=False
     # if not define current spread arbitrarily here
-    current_spread = 1
+    current_spread = 20
     # define the electrode grid
     elec_side_dim = 8
-    activ_spread= 0.1
+    activ_spread= 0
     #define neuron grid
     neu_side_dim = 16
 

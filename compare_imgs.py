@@ -61,19 +61,19 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
         for j in range(5):
             if  i == 3:
                 #img = convert
-                img = axs[i,j].imshow(output_np[4*j],cmap='gray')
+                img = axs[i,j].imshow(output_np[7*j + 1],cmap='gray')
                 axs[i,j].axis('off')
                 axs[i,j].set_title('Reconstruction')
             elif i == 2:
-                img = axs[i,j].imshow(layer2_np[4*j],cmap='gray')
+                img = axs[i,j].imshow(layer2_np[7*j + 1],cmap='gray')
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Neural Activation')
             elif i == 1:
-                img = axs[i,j].imshow(layer1_np[4*j],cmap=cmap_custom)
+                img = axs[i,j].imshow(layer1_np[7*j + 1],cmap=cmap_custom)
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Electrodes Activation')
             elif i == 0:
-                img = axs[i,j].imshow(cifar100_test_np[4*j],cmap='gray')
+                img = axs[i,j].imshow(cifar100_test_np[7*j + 1],cmap='gray')
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'original image')
             fig.colorbar(img, ax=axs[i, j], fraction=0.046, pad=0.04)    

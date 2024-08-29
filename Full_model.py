@@ -21,8 +21,8 @@ class DoubleSigmoid(nn.Module):
         sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
-def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude):
-    
+def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude,noise):
+    import numpy as np
     class AutoEncoder(nn.Module):
         def __init__(self):
             super(AutoEncoder, self).__init__()   
@@ -48,6 +48,7 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_fu
                 x = self.double_sigmoid(x)
             else:
                 x = self.relu(x)
+            x += noise*np.random.uniform(-1,1)
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer
             x = self.layer3(x)
@@ -85,7 +86,7 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
     for i, learning_rate in enumerate(learning_rates):
             # Define Model
         basic_autoencoder = AutoEncoder()
-
+         
         # Define a loss function
         criterion = nn.MSELoss()  # mean squared loss, eucledian
 
@@ -95,7 +96,9 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
             {'params': basic_autoencoder.layer3.parameters()}
         ], lr=learning_rate)
         for epoch in range(n_epochs):  # Number of epochs
+            basic_autoencoder.train() 
             for input, _ in train_loader:
+                
                 
                 input = input.view(input.size(0), -1)
                 # Zero the parameter gradients
@@ -114,15 +117,16 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
             # Print loss
             if (epoch) % 10 == 0:  # Print every 10 epochs
                 print(f'Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
-            # training data
-            output_train,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
-            train_loss = criterion(output_train, cifar100_train_tsr_flat)
-            train_err[epoch + 1,i] = train_loss.item()
-        
-            # validation data
-            output_test,_,_ = basic_autoencoder(cifar100_test_tsr_flat)
-            val_loss = criterion(output_test, cifar100_test_tsr_flat)
-            val_err[epoch + 1,i] = val_loss.item()
+            basic_autoencoder.eval()  # Set model to evaluation mode
+            with torch.no_grad():
+                # training data
+                output_train,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
+                train_loss = criterion(output_train, cifar100_train_tsr_flat)
+                train_err[epoch + 1,i] = train_loss.item()       
+                # validation data
+                output_test,_,_ = basic_autoencoder(cifar100_test_tsr_flat)
+                val_loss = criterion(output_test, cifar100_test_tsr_flat)
+                val_err[epoch + 1,i] = val_loss.item()
         Autoencoders.append(basic_autoencoder)
 
     train_err[0], val_err [0] = cifar100_train_tsr_flat.mean(),cifar100_test_tsr_flat.mean()

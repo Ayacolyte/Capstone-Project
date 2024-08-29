@@ -8,18 +8,27 @@ import time
 #from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
 #import matplotlib.pyplot as plt
 
-drop_rate = 0.2
+#drop_rate = 0.2
+# Define Full model, in which the weights from LNL model is inherited
+class CustomLayer(nn.Module):
+    def __init__(self, input_size, output_size, mask):
+        import math
+        super(CustomLayer, self).__init__()
+        
+        # Initialize weights and biases
+        self.weight = nn.Parameter(torch.randn(input_size, output_size))
+        self.bias = nn.Parameter(torch.randn(output_size))  
+        self.mask = mask
 
-
-# custom loss function
-class custom_loss(nn.Module):
-    def __init__(self):
-        super(custom_loss, self).__init__()
+        # Apply the mask: Zero out weights where the mask is zero
+        self.weight.data *= self.mask
+        
+    def forward(self, x):
+        # Apply the mask to ensure that the zeroed weights remain zero
+        weighted_input = torch.matmul(x, self.weight) + self.bias
+        return weighted_input
     
-    def forward(self, inputs, targets,neu_activ, _lambda):
-        loss = torch.mean((targets - inputs)**2)/2 + _lambda * torch.sum(neu_activ)
-        return loss
-# double sigmoid activation function
+
 class DoubleSigmoid(nn.Module):
     def __init__(self, shift, magnitude):
         super(DoubleSigmoid, self).__init__()
@@ -31,37 +40,36 @@ class DoubleSigmoid(nn.Module):
         sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
-def define_model_sparse(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude,noise):
+def define_model_local(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude,noise,img_side_dim, mask):
     import numpy as np
     class AutoEncoder(nn.Module):
         def __init__(self):
             super(AutoEncoder, self).__init__()   
-            self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=True)
+
+            #self.conv1 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=9, stride=2, padding=3,bias=True)
+            self.layer1 = CustomLayer(img_side_dim**2, elec_side_dim**2, mask)
             self.LNL_model = nn.Linear(elec_side_dim**2, neu_side_dim**2, bias=False)
-            self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=True)
+            self.layer3 = nn.Linear(neu_side_dim**2, img_side_dim**2, bias=True)
             self.relu = nn.ReLU()
             self.LNL_model.load_state_dict(torch.load(LNL_model_path))
-            #self.activation2 = nn.Sigmoid()
             self.dropout = nn.Dropout(p=drop_rate)
             self.double_sigmoid = DoubleSigmoid(shift, magnitude)
         def forward(self, x):
-            x = self.layer1(x) 
+            x = self.layer1(x)
             if activ_func1 == "ReLU":
                 x = self.relu(x)
             elif activ_func1 == "linear":
                 pass
-
             lyr1 = x
             x = self.LNL_model(x)  
             if activ_func2 == "linear":
-                x = self.activation(x)
+                pass
             elif activ_func2 == "2sig":
+                #print("2sig used")
                 x = self.double_sigmoid(x)
             else:
                 x = self.relu(x)
             x += noise*np.random.uniform(-1,1)
-            #x = self.activation2(-5*(x+0.1))
-            #x = self.activation2(5*(x-0.1))
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer
             x = self.layer3(x)
@@ -85,9 +93,8 @@ def define_model_sparse(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, a
 #         sigmoid2 = self.sigmoid(self.alpha2 * x + self.beta2)
 #         return sigmoid1 + sigmoid2
     
-def train_and_save_sparse(n_epochs,AutoEncoder,model_title,_lambda,mult_lr = True):
+def train_and_save_local(n_epochs,AutoEncoder,model_title,mult_lr = True):
     from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
-    sparse_activ = custom_loss()
     # # Number of epochs
     if mult_lr:
         learning_rates = [0.01, 0.001, 0.0001, 0.00001]
@@ -100,8 +107,8 @@ def train_and_save_sparse(n_epochs,AutoEncoder,model_title,_lambda,mult_lr = Tru
     for i, learning_rate in enumerate(learning_rates):
             # Define Model
         basic_autoencoder = AutoEncoder()
-
-        # Define a loss function for evaluation only
+         
+        # Define a loss function
         criterion = nn.MSELoss()  # mean squared loss, eucledian
 
         # Define an optimizer, specifying only the parameters of fc2 and fc3
@@ -110,17 +117,19 @@ def train_and_save_sparse(n_epochs,AutoEncoder,model_title,_lambda,mult_lr = Tru
             {'params': basic_autoencoder.layer3.parameters()}
         ], lr=learning_rate)
         for epoch in range(n_epochs):  # Number of epochs
+            basic_autoencoder.train() 
             for input, _ in train_loader:
+                
                 
                 input = input.view(input.size(0), -1)
                 # Zero the parameter gradients
                 optimizer.zero_grad()
 
                 # Forward pass
-                output,_,neu_activ = basic_autoencoder(input)
+                outputs,_, _ = basic_autoencoder(input)
 
                 # Compute loss
-                loss = sparse_activ(output,input,neu_activ, _lambda)
+                loss = criterion(outputs, input)
 
                 # Backward pass and optimize
                 loss.backward()
@@ -129,15 +138,16 @@ def train_and_save_sparse(n_epochs,AutoEncoder,model_title,_lambda,mult_lr = Tru
             # Print loss
             if (epoch) % 10 == 0:  # Print every 10 epochs
                 print(f'Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
-            # training data
-            output_train,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
-            train_loss = criterion(output_train, cifar100_train_tsr_flat)
-            train_err[epoch + 1,i] = train_loss.item()
-        
-            # validation data
-            output_test,_,_ = basic_autoencoder(cifar100_test_tsr_flat)
-            val_loss = criterion(output_test, cifar100_test_tsr_flat)
-            val_err[epoch + 1,i] = val_loss.item()
+            basic_autoencoder.eval()  # Set model to evaluation mode
+            with torch.no_grad():
+                # training data
+                output_train,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
+                train_loss = criterion(output_train, cifar100_train_tsr_flat)
+                train_err[epoch + 1,i] = train_loss.item()       
+                # validation data
+                output_test,_,_ = basic_autoencoder(cifar100_test_tsr_flat)
+                val_loss = criterion(output_test, cifar100_test_tsr_flat)
+                val_err[epoch + 1,i] = val_loss.item()
         Autoencoders.append(basic_autoencoder)
 
     train_err[0], val_err [0] = cifar100_train_tsr_flat.mean(),cifar100_test_tsr_flat.mean()
@@ -148,7 +158,7 @@ def train_and_save_sparse(n_epochs,AutoEncoder,model_title,_lambda,mult_lr = Tru
     # Create the directory if it doesn't exist
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-        
+    
     file_path = os.path.join(data_dir, f'NN_{model_title}_output.pkl')
     with open(file_path, 'wb') as f:
         pickle.dump((train_err, val_err), f)
@@ -160,3 +170,29 @@ def train_and_save_sparse(n_epochs,AutoEncoder,model_title,_lambda,mult_lr = Tru
         else:
             model_path = cwd+f'/data/model_{model_title}_{labels[idx]}.pth'
         torch.save(model.state_dict(), model_path)
+
+
+# labels = ['lr=0.1', 'lr = 0.01', 'lr = 0.001', 'lr = 0.0001']
+# # Create the bar plot
+# fig, axs = plt.subplots(1, 2, figsize=(14, 6))
+
+# # Plot the first vector
+# axs[0].bar(labels, train_err, color='blue')
+# axs[0].set_title('Training Error Visualization')
+# axs[0].set_xlabel('Learning Rates')
+# axs[0].set_ylabel('Error')
+
+# # Plot the second vector
+# axs[1].bar(labels, val_err, color='green')
+# axs[1].set_title('Validation Error Visualization')
+# axs[1].set_xlabel('Learning Rates')
+# axs[1].set_ylabel('Error')
+
+# # Adjust layout
+# plt.tight_layout()
+
+# # Show the plot and keep the plot open
+# plt.show(block=False)
+# while plt.fignum_exists(1):
+#     plt.pause(0.1)
+#     time.sleep(0.1)  

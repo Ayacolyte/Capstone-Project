@@ -21,12 +21,12 @@ class DoubleSigmoid(nn.Module):
         sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
-def define_model_CNN(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude,noise,img_side_dim):
+def define_model_CNN(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, af_array, shift,magnitude,noise,img_side_dim):
     import numpy as np
     class AutoEncoder(nn.Module):
         def __init__(self):
             super(AutoEncoder, self).__init__()   
-            self.conv1 = nn.Sequential(
+            self.layer1 = nn.Sequential(
             nn.Conv2d(                     
                 in_channels=1,
                 out_channels=1,  
@@ -37,7 +37,7 @@ def define_model_CNN(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, acti
             nn.MaxPool2d(kernel_size=2)     
             )
             #self.conv1 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=9, stride=2, padding=3,bias=True)
-            self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=True)
+            #self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=True)
             self.LNL_model = nn.Linear(elec_side_dim**2, neu_side_dim**2, bias=False)
             self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=True)
             self.relu = nn.ReLU()
@@ -45,27 +45,31 @@ def define_model_CNN(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, acti
             self.dropout = nn.Dropout(p=drop_rate)
             self.double_sigmoid = DoubleSigmoid(shift, magnitude)
         def forward(self, x):
+            
+            def assert_activ(af, x):
+                if af == "2sig":
+                    x = self.double_sigmoid(x)
+                elif af == "sig":
+                    x = torch.sigmoid(magnitude * (x - shift))
+                elif af == "linear":
+                    x = x
+                else:
+                    x = self.relu(x)
+                return x
             x_2d = x.view(x.shape[0],1,img_side_dim,img_side_dim)
-            x_2d = self.conv1(x_2d) 
+            x_2d = self.layer1(x_2d) 
             x = x_2d.view(x_2d.shape[0],-1)
-            if activ_func1 == "ReLU":
-                x = self.relu(x)
-            elif activ_func1 == "linear":
-                pass
+            #x = self.layer1(x) 
+            x = assert_activ(af_array[0], x)
             lyr1 = x
             x = self.LNL_model(x)  
-            if activ_func2 == "linear":
-                pass
-            elif activ_func2 == "2sig":
-                #print("2sig used")
-                x = self.double_sigmoid(x)
-            else:
-                x = self.relu(x)
-            x += noise*np.random.uniform(-1,1)
+            x = assert_activ(af_array[1], x)
+            additive_noise = torch.tensor(np.random.uniform(-1, 1, x.shape),dtype=torch.float)
+            x = x + noise*additive_noise
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer
             x = self.layer3(x)
-            x = self.relu(x)
+            x = assert_activ(af_array[2], x)
 
             return x,lyr1, lyr2
 

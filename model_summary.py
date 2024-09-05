@@ -27,7 +27,7 @@ def visualize_weights(model,model_path):
 
     plt.show()
 
-def show_generator(model_path,AutoEncoder, activ_funcs, magnitude, shift, model_descrip):
+def show_generator(model_path,AutoEncoder, activ_funcs, magnitude, shift, model_descrip,execution_profile):
     # import input images
     from Natural_Images import cifar100_test,loader2tensor
 
@@ -70,11 +70,15 @@ def show_generator(model_path,AutoEncoder, activ_funcs, magnitude, shift, model_
         fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
 
         for i, layer in enumerate(layers):
-            weights = layer.weight.data.numpy()
-            if i == 1:
-                biases = [0]
+            if execution_profile == "CNN":
+                weights = layer[0].weight.data.cpu().numpy()
+                biases =  layer[0].bias.data.cpu().numpy()
             else:
-                biases =  layer.bias.data.numpy()
+                weights = layer.weight.data.numpy()
+                if i == 1:
+                    biases = [0]
+                else:
+                    biases =  layer.bias.data.numpy()
             input = inputs[i]
             gnrtr_mat = []
         
@@ -83,12 +87,14 @@ def show_generator(model_path,AutoEncoder, activ_funcs, magnitude, shift, model_
                 curr_generator_1stelec = np.dot(input[j,:],weights[0,:]) + biases[0]
                 gnrtr_mat.append(curr_generator_1stelec)
             x = np.linspace(-1*max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))),max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))),40000)
-            def activ_func(activ_func1, magnitude, shift):
-                if activ_func1 == "ReLU":
+            def activ_func(af, magnitude, shift):
+                if af == "ReLU":
                     return np.maximum(0, x)
-                elif activ_func1 == "linear":
+                elif af == "linear":
                     return x
-                elif activ_func1 == "2sig":
+                elif af == 'sig':
+                    return 1/(1+np.exp(-1*magnitude * (x - shift)))
+                elif af == "2sig":
                     sigmoid1 = 1/(1+np.exp(magnitude * (x + shift)))
                     sigmoid2 = 1/(1+np.exp(-1*magnitude * (x - shift)))
                     return sigmoid1 + sigmoid2

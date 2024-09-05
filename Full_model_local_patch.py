@@ -16,16 +16,16 @@ class CustomLayer(nn.Module):
         super(CustomLayer, self).__init__()
         
         # Initialize weights and biases
-        self.weight = nn.Parameter(torch.randn(input_size, output_size))
+        self.weight = nn.Parameter(torch.randn(output_size,input_size))
         self.bias = nn.Parameter(torch.randn(output_size))  
-        self.mask = mask
+        self.mask = mask.t()
 
         # Apply the mask: Zero out weights where the mask is zero
         self.weight.data *= self.mask
         
     def forward(self, x):
         # Apply the mask to ensure that the zeroed weights remain zero
-        weighted_input = torch.matmul(x, self.weight) + self.bias
+        weighted_input = torch.matmul(x, self.weight.t()) + self.bias
         return weighted_input
     
 
@@ -40,7 +40,7 @@ class DoubleSigmoid(nn.Module):
         sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
-def define_model_local(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, activ_func1,activ_func2,shift,magnitude,noise,img_side_dim, mask):
+def define_model_local(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, af_array,shift,magnitude,noise,img_side_dim, mask):
     import numpy as np
     class AutoEncoder(nn.Module):
         def __init__(self):
@@ -55,25 +55,28 @@ def define_model_local(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, ac
             self.dropout = nn.Dropout(p=drop_rate)
             self.double_sigmoid = DoubleSigmoid(shift, magnitude)
         def forward(self, x):
-            x = self.layer1(x)
-            if activ_func1 == "ReLU":
-                x = self.relu(x)
-            elif activ_func1 == "linear":
-                pass
+            def assert_activ(af, x):
+                if af == "2sig":
+                    x = self.double_sigmoid(x)
+                elif af == "sig":
+                    x = torch.sigmoid(magnitude * (x - shift))
+                elif af == "linear":
+                    x = x
+                else:
+                    x = self.relu(x)
+                return x
+
+            x = self.layer1(x) 
+            x = assert_activ(af_array[0], x)
             lyr1 = x
             x = self.LNL_model(x)  
-            if activ_func2 == "linear":
-                pass
-            elif activ_func2 == "2sig":
-                #print("2sig used")
-                x = self.double_sigmoid(x)
-            else:
-                x = self.relu(x)
-            x += noise*np.random.uniform(-1,1)
+            x = assert_activ(af_array[1], x)
+            additive_noise = torch.tensor(np.random.uniform(-1, 1, x.shape),dtype=torch.float)
+            x = x + noise*additive_noise
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer
             x = self.layer3(x)
-            x = self.relu(x)
+            x = assert_activ(af_array[2], x)
 
             return x,lyr1, lyr2
 

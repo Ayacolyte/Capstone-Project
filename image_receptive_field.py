@@ -1,7 +1,8 @@
 
-def visualize_img_recep(model_path, AutoEncoder, img_side_dim, elec_side_dim,model_descrip,show_fft):
+def visualize_img_recep(model_path, AutoEncoder, img_side_dim, elec_side_dim,model_descrip,show_fft,execution_profile):
     import numpy as np
     import torch
+    import torch.nn as nn
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     state_dict = torch.load(model_path)
@@ -21,9 +22,15 @@ def visualize_img_recep(model_path, AutoEncoder, img_side_dim, elec_side_dim,mod
     #recep_mem = []
 
     for i in range(elec_side_dim**2):
-        weights = model_loaded.layer1.weight.data.numpy()
-        curr_recep = np.squeeze(weights[i,:])
-        curr_recep = curr_recep.reshape(img_side_dim, img_side_dim)
+        if execution_profile == "CNN": 
+            show_fft = False
+            weights = model_loaded.layer1[0].weight.data.cpu().numpy()
+            curr_recep = weights
+            curr_recep = np.squeeze(curr_recep)
+        else:
+            weights = model_loaded.layer1.weight.data.numpy()
+            curr_recep = np.squeeze(weights[i,:])
+            curr_recep = curr_recep.reshape(img_side_dim, img_side_dim)
         if show_fft:
             # Perform the 2D FFT
             img_fft = np.fft.fft2(curr_recep)

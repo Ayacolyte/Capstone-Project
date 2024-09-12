@@ -70,22 +70,22 @@ def show_generator(model_path,AutoEncoder, activ_funcs, magnitude, shift, model_
         fig, axs = plt.subplots(1, len(layers), figsize=(20, 5))
 
         for i, layer in enumerate(layers):
-            if execution_profile == "CNN":
-                weights = layer[0].weight.data.cpu().numpy()
-                biases =  layer[0].bias.data.cpu().numpy()
+            if i == 0 and (execution_profile == "CNN" or execution_profile == "CNN_pool"):
+                gnrtr_mat = 0
             else:
+
                 weights = layer.weight.data.numpy()
                 if i == 1:
                     biases = [0]
                 else:
                     biases =  layer.bias.data.numpy()
-            input = inputs[i]
-            gnrtr_mat = []
+                input = inputs[i]
+                gnrtr_mat = []
         
-            for j in range(input.shape[0]):
+                for j in range(input.shape[0]):
 
-                curr_generator_1stelec = np.dot(input[j,:],weights[0,:]) + biases[0]
-                gnrtr_mat.append(curr_generator_1stelec)
+                    curr_generator_1stelec = np.dot(input[j,:],weights[0,:]) + biases[0]
+                    gnrtr_mat.append(curr_generator_1stelec)
             x = np.linspace(-1*max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))),max(np.abs(np.max(gnrtr_mat)), np.abs(np.min(gnrtr_mat))),40000)
             def activ_func(af, magnitude, shift):
                 if af == "ReLU":

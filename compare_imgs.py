@@ -24,7 +24,8 @@ import math
 #     fig.colorbar(img, ax=axes[i], fraction=0.046,aspect=20)
 # fig.subplots_adjust(wspace=1)  # Increase the width space
 # plt.show()
-def show_img_compare(model_path, AutoEncoder,model_descrip):
+def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
+
     from Natural_Images import cifar100_test,loader2tensor
     import matplotlib.colors as mcolors
     state_dict = torch.load(model_path)
@@ -40,6 +41,8 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
     cifar100_test_np = cifar100_test_tsr.detach().numpy()
 
     model_loaded.eval()
+    if execution_profile == "CNN_pool":
+        print(model_loaded.layer1[1].attention_weights) 
     with torch.no_grad():
         output_test_flat, layer1_flat, layer2_flat = model_loaded(cifar100_test_tsr_flat)
 
@@ -55,6 +58,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
     layer2 = layer2_flat.view(layer2_flat.shape[0],side_dim,side_dim)
     layer2_np = layer2.detach().numpy()
     cmap_custom = mcolors.LinearSegmentedColormap.from_list('red_blue', ['blue', 'white', 'red'])
+    
     # plot reconstructions
     fig, axs = plt.subplots(4, 5,figsize=(15, 6))
     for i in range(4):
@@ -69,7 +73,8 @@ def show_img_compare(model_path, AutoEncoder,model_descrip):
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Neural Activation')
             elif i == 1:
-                img = axs[i,j].imshow(layer1_np[7*j + 1],cmap=cmap_custom)
+                norm_custom = mcolors.TwoSlopeNorm(vmin=layer1_np[7*j + 1].min(), vcenter=0, vmax=layer1_np[7*j + 1].max())
+                img = axs[i,j].imshow(layer1_np[7*j + 1],cmap=cmap_custom,norm = norm_custom)
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Electrodes Activation')
             elif i == 0:

@@ -10,18 +10,7 @@ import time
 
 #drop_rate = 0.2
 # Define Full model, in which the weights from LNL model is inherited
-class FeatureMapSelector(nn.Module):
-    def __init__(self, num_feature_maps):
-        super(FeatureMapSelector, self).__init__()
-        # Learnable weights to apply to each feature map
-        self.attention_weights = nn.Parameter(torch.randn(num_feature_maps))
 
-    def forward(self, x):
-        # Softmax to generate weights for each feature map
-        attn_weights = torch.softmax(self.attention_weights, dim=0)
-        # Weighted sum over feature maps (apply attention weights)
-        x = torch.sum(x * attn_weights.view(1, -1, 1, 1), dim=1, keepdim=True)
-        return x
     
 class DoubleSigmoid(nn.Module):
     def __init__(self, shift, magnitude):
@@ -34,23 +23,38 @@ class DoubleSigmoid(nn.Module):
         sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
-def define_model_CNN_pool(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, af_array, shift,magnitude,noise,img_side_dim):
+def define_model_CNN_pool(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate, af_array, shift,magnitude,noise,img_side_dim,num_ftrmap,kernal_size):
     import numpy as np
+    import math
+    class FeatureMapSelector(nn.Module):
+        def __init__(self, num_feature_maps):
+            super(FeatureMapSelector, self).__init__()
+        # Learnable weights to apply to each feature map
+            self.attention_weights = nn.Parameter(torch.randn(1, num_feature_maps, 8, 8))  # Shape (1, C, H, W)
+
+        def forward(self, x):
+        # Softmax to generate weights for each feature map
+        # Weighted sum over feature maps (apply attention weights)
+            x = x * self.attention_weights  # Element-wise multiplication
+            x = torch.sum(x, dim=1, keepdim=True)  # Sum over the feature map (channel) dimension
+            return x
+    
     class AutoEncoder(nn.Module):
         def __init__(self):
             super(AutoEncoder, self).__init__()   
             self.layer1 = nn.Sequential(
             nn.Conv2d(                     
                 in_channels=1,
-                out_channels=8,  
-                kernel_size=7,         
-                stride=4,                    
-                padding=3       
+                out_channels=num_ftrmap,  
+                kernel_size=kernal_size,         
+                stride=img_side_dim//elec_side_dim,                    
+                padding=math.ceil(((elec_side_dim-1)*(img_side_dim//elec_side_dim) + kernal_size - img_side_dim)/2)   
             ),
-            FeatureMapSelector(num_feature_maps=8)
+            FeatureMapSelector(num_feature_maps=num_ftrmap)
             )
             #self.conv1 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=9, stride=2, padding=3,bias=True)
             #self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=True)
+
             self.LNL_model = nn.Linear(elec_side_dim**2, neu_side_dim**2, bias=False)
             self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=True)
             self.relu = nn.ReLU()
@@ -76,9 +80,12 @@ def define_model_CNN_pool(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,
             x = assert_activ(af_array[0], x)
             lyr1 = x
             x = self.LNL_model(x)  
+            if self.training:
+                additive_noise = torch.tensor(np.random.normal(-1, 1, x.shape),dtype=torch.float)
+                x = x + noise*additive_noise
             x = assert_activ(af_array[1], x)
-            additive_noise = torch.tensor(np.random.uniform(-1, 1, x.shape),dtype=torch.float)
-            x = x + noise*additive_noise
+            #additive_noise = torch.tensor(np.random.uniform(-1, 1, x.shape),dtype=torch.float)
+            #x = x + noise*additive_noise
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer
             x = self.layer3(x)
@@ -147,13 +154,14 @@ def train_and_save_CNN_pool(n_epochs,AutoEncoder,model_title,mult_lr = True):
             # Print loss
             if (epoch) % 10 == 0:  # Print every 10 epochs
                 print(f'Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
-            basic_autoencoder.eval()  # Set model to evaluation mode
+            
             with torch.no_grad():
                 # training data
                 output_train,_,_ = basic_autoencoder(cifar100_train_tsr_flat)
                 train_loss = criterion(output_train, cifar100_train_tsr_flat)
                 train_err[epoch + 1,i] = train_loss.item()       
                 # validation data
+                basic_autoencoder.eval()  # Set model to evaluation mode
                 output_test,_,_ = basic_autoencoder(cifar100_test_tsr_flat)
                 val_loss = criterion(output_test, cifar100_test_tsr_flat)
                 val_err[epoch + 1,i] = val_loss.item()

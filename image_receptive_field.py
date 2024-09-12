@@ -27,6 +27,15 @@ def visualize_img_recep(model_path, AutoEncoder, img_side_dim, elec_side_dim,mod
             weights = model_loaded.layer1[0].weight.data.cpu().numpy()
             curr_recep = weights
             curr_recep = np.squeeze(curr_recep)
+        elif execution_profile == "CNN_pool":
+            show_fft = False
+            
+            weights = model_loaded.layer1[0].weight.data.cpu().numpy()
+            if i < weights.shape[0]:
+                curr_recep = weights[i,:,:]
+            else:
+                curr_recep = np.zeros((8,8))
+            curr_recep = np.squeeze(curr_recep)
         else:
             weights = model_loaded.layer1.weight.data.numpy()
             curr_recep = np.squeeze(weights[i,:])

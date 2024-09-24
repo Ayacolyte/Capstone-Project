@@ -33,6 +33,9 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,af_array,
             self.LNL_model.load_state_dict(torch.load(LNL_model_path))
             self.dropout = nn.Dropout(p=drop_rate)
             self.double_sigmoid = DoubleSigmoid(shift, magnitude)
+            self.noise_model1 = noise*torch.tensor(np.random.uniform(-1, 1, self.LNL_model.weight.shape),dtype=torch.float)
+            self.noise_model2 = noise*torch.tensor(np.random.uniform(-1, 1, self.LNL_model.weight.shape),dtype=torch.float)
+            
         def forward(self, x):
             def assert_activ(af, x):
                 if af == "2sig":
@@ -48,13 +51,18 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,af_array,
             x = self.layer1(x) 
             x = assert_activ(af_array[0], x)
             lyr1 = x
-
-            x = self.LNL_model(x) 
             if self.training:
-                additive_noise = torch.tensor(np.random.normal(-1, 1, x.shape),dtype=torch.float)
-                x = x + noise*additive_noise
+                noise_weight_LNL = self.LNL_model.weight + self.noise_model1
+                #print(noise_weight_LNL.shape)
+                #print(self.LNL_model.bias)
+                x = nn.functional.linear(x, noise_weight_LNL, self.LNL_model.bias)
+            else:
+                noise_weight_LNL = self.LNL_model.weight + self.noise_model2
+                x = nn.functional.linear(x, noise_weight_LNL, self.LNL_model.bias)
+            #print(self.LNL_model.weight)
+            #x = self.LNL_model(x) 
             x = assert_activ(af_array[1], x)
-            additive_noise = torch.tensor(np.random.normal(-1, 1, x.shape),dtype=torch.float)
+            additive_noise = torch.tensor(np.random.uniform(-1, 1, x.shape),dtype=torch.float)
             x = x + noise*additive_noise
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer

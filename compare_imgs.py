@@ -42,7 +42,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
 
     model_loaded.eval()
     if execution_profile == "CNN_pool":
-        print(model_loaded.layer1[1].attention_weights) 
+        print(model_loaded.layer1[2].attention_weights) 
     with torch.no_grad():
         output_test_flat, layer1_flat, layer2_flat = model_loaded(cifar100_test_tsr_flat)
 

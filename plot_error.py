@@ -88,11 +88,12 @@ def comp_error(data_path,model_descrip):
         plt.figure(figsize=(10, 6))
         plt.plot(log_data[0][:], label='Training Error', color='blue')  # Skip the first entry if it contains the mean
         plt.plot(log_data[1][:], label='Validation Error', color='red')  # Skip the first entry if it contains the mean
-        plt.savefig(f'{model_descrip}_Error_compare.png', format='png')
+        
         plt.title('Training and Validation Error over Epochs')
         plt.xlabel('Epoch')
         plt.ylabel('Log Scale Error')
         plt.legend()
+        plt.savefig(f'{model_descrip}_Error_compare.png', format='png')
         plt.show()
 # # Load the model state dictionary
 # model_path = cwd+f'/data/model_1.pth'

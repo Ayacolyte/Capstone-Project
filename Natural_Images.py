@@ -6,8 +6,9 @@ Get Natural Images
 @author: David
 """
 import torch
-from torchvision import datasets, transforms
-from torchvision.transforms import Lambda
+from torchvision import datasets
+from torchvision.transforms import v2
+from torchvision.transforms.v2 import Lambda
 from torch.utils.data import TensorDataset, DataLoader, ConcatDataset
 import os
 import matplotlib.pyplot as plt
@@ -27,28 +28,37 @@ class ToGrayScale(torch.nn.Module):
         gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
         return gray  # Return 2D tensor without channel dimension
 
-transform = transforms.Compose([
-    transforms.ToTensor(),  # Convert images to PyTorch tensors
+transform = v2.Compose([
+    v2.ToTensor(),  # Convert images to PyTorch tensors
     ToGrayScale(),
     Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
 ])
 
 # Mirrored transformation
-mirrored_transform = transforms.Compose([
-    transforms.ToTensor(),  # Convert images to PyTorch tensors
-    transforms.RandomVerticalFlip(p=1.0),  # Flip the image vertically
+mirrored_transform = v2.Compose([
+    v2.ToTensor(),  # Convert images to PyTorch tensors
+    v2.RandomVerticalFlip(p=1.0),  # Flip the image vertically
     ToGrayScale(),
     Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
 ])
 
-augment = False
+# rotation_transform = v2.Compose([
+#     v2.ToTensor(),  # Convert images to PyTorch tensors
+#     v2.RandomRotation((-90,180)),  # rotate
+#     ToGrayScale(),
+#     Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
+# ])
+
+augment = True
 if augment:
     cifar100_train_og = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)
     cifar100_train_mir = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=mirrored_transform)
+    #cifar100_train_rot = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=rotation_transform)
     cifar100_train = ConcatDataset([cifar100_train_og, cifar100_train_mir])
     # Load CIFAR-10 test data
     cifar100_test_og = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=transform)
     cifar100_test_mir = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=mirrored_transform)
+    #cifar100_test_rot = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=rotation_transform)
     cifar100_test = ConcatDataset([cifar100_test_og, cifar100_test_mir])
 else:
     cifar100_train = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)

@@ -97,6 +97,7 @@ def visualize_img_recon_recep(model_path, AutoEncoder, neu_side_dim, model_descr
     import torch
     import torch.nn as nn
     import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     state_dict = torch.load(model_path)
 
@@ -148,14 +149,14 @@ def visualize_img_recon_recep(model_path, AutoEncoder, neu_side_dim, model_descr
             axs2[i].set_xticks([])
             axs2[i].set_yticks([])
             divider = make_axes_locatable(axs2[i])
-
+            
             # Append an axes to the right of the current axes with the same height
             cax = divider.append_axes("right", size="5%", pad=0.05)
             
             # Create the colorbar in the new axes
             fig2.colorbar(img, cax=cax)
-
-        img = axs1[i].imshow(curr_recep, aspect='equal', cmap='gray')
+        cmap_custom = mcolors.LinearSegmentedColormap.from_list('red_blue', ['blue', 'white', 'red'])
+        img = axs1[i].imshow(curr_recep, aspect='equal', cmap=cmap_custom)
         axs1[i].set_title(f"{titles[i]} Pixel")
         #axs1[i].set_xlabel('Neurons')
         #axs1[i].set_ylabel('Input Features')

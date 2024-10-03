@@ -42,23 +42,23 @@ mirrored_transform = v2.Compose([
     Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
 ])
 
-# rotation_transform = v2.Compose([
-#     v2.ToTensor(),  # Convert images to PyTorch tensors
-#     v2.RandomRotation((-90,180)),  # rotate
-#     ToGrayScale(),
-#     Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
-# ])
+rotation_transform = v2.Compose([
+    v2.ToTensor(),  # Convert images to PyTorch tensors
+    v2.RandomRotation((90,90)),  # rotate
+    ToGrayScale(),
+    Lambda(lambda x: (x - torch.min(x)) / (torch.max(x) - torch.min(x)))  # Normalize the images between 0 and 1
+])
 
 augment = True
 if augment:
     cifar100_train_og = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)
     cifar100_train_mir = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=mirrored_transform)
-    #cifar100_train_rot = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=rotation_transform)
+    cifar100_train_rot = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=rotation_transform)
     cifar100_train = ConcatDataset([cifar100_train_og, cifar100_train_mir])
     # Load CIFAR-10 test data
     cifar100_test_og = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=transform)
     cifar100_test_mir = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=mirrored_transform)
-    #cifar100_test_rot = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=rotation_transform)
+    cifar100_test_rot = datasets.CIFAR100(root=cwd+'/data', train=False, download=True,transform=rotation_transform)
     cifar100_test = ConcatDataset([cifar100_test_og, cifar100_test_mir])
 else:
     cifar100_train = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)

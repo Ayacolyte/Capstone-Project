@@ -61,6 +61,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
     
     # plot reconstructions
     fig, axs = plt.subplots(4, 5,figsize=(15, 6))
+    neu_maps = []
     for i in range(4):
         for j in range(5):
             if  i == 3:
@@ -72,6 +73,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
                 img = axs[i,j].imshow(layer2_np[7*j + 1],cmap='gray')
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Neural Activation')
+                neu_maps.append(layer2_np[7*j + 1])
             elif i == 1:
                 norm_custom = mcolors.TwoSlopeNorm(vmin=layer1_np[7*j + 1].min(), vcenter=0, vmax=layer1_np[7*j + 1].max())
                 img = axs[i,j].imshow(layer1_np[7*j + 1],cmap=cmap_custom,norm = norm_custom)
@@ -85,7 +87,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
     fig.suptitle(f"Image Reconstruction Comparison:{model_descrip}", fontsize=16) 
     plt.savefig(f"{model_descrip}_recons.png", format='png')
     plt.show()
-    return output_test_flat, layer1_flat, layer2_flat
+    return output_test_flat, layer1_flat, layer2_flat,neu_maps
 
 
 

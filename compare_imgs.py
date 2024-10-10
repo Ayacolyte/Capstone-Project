@@ -42,6 +42,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
 
     model_loaded.eval()
     if execution_profile == "CNN_pool":
+        print("feature map weights")
         print(model_loaded.layer1[2].attention_weights) 
     with torch.no_grad():
         output_test_flat, layer1_flat, layer2_flat = model_loaded(cifar100_test_tsr_flat)
@@ -61,7 +62,7 @@ def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
     
     # plot reconstructions
     fig, axs = plt.subplots(4, 5,figsize=(15, 6))
-    neu_maps = []
+    neu_maps = layer2_np
     for i in range(4):
         for j in range(5):
             if  i == 3:
@@ -73,7 +74,6 @@ def show_img_compare(model_path, AutoEncoder,model_descrip,execution_profile):
                 img = axs[i,j].imshow(layer2_np[7*j + 1],cmap='gray')
                 axs[i,j].axis('off')
                 axs[i,j].set_title(f'Neural Activation')
-                neu_maps.append(layer2_np[7*j + 1])
             elif i == 1:
                 norm_custom = mcolors.TwoSlopeNorm(vmin=layer1_np[7*j + 1].min(), vcenter=0, vmax=layer1_np[7*j + 1].max())
                 img = axs[i,j].imshow(layer1_np[7*j + 1],cmap=cmap_custom,norm = norm_custom)

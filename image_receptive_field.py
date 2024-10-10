@@ -156,7 +156,8 @@ def visualize_img_recon_recep(model_path, AutoEncoder, neu_side_dim, model_descr
             # Create the colorbar in the new axes
             fig2.colorbar(img, cax=cax)
         cmap_custom = mcolors.LinearSegmentedColormap.from_list('red_blue', ['blue', 'white', 'red'])
-        img = axs1[i].imshow(curr_recep, aspect='equal', cmap=cmap_custom)
+        norm_custom = mcolors.TwoSlopeNorm(vmin=curr_recep.min(), vcenter=0, vmax=curr_recep.max())
+        img = axs1[i].imshow(curr_recep, aspect='equal', cmap=cmap_custom,norm=norm_custom)
         axs1[i].set_title(f"{titles[i]} Pixel")
         #axs1[i].set_xlabel('Neurons')
         #axs1[i].set_ylabel('Input Features')

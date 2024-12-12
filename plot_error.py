@@ -25,7 +25,7 @@ def show_error(data_path,model_descrip):
 
         #print(data[0])
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
     N_epoch = data[0].shape[0]
     x = np.arange(1, N_epoch + 1)
@@ -71,8 +71,7 @@ def comp_error(data_path,model_descrip):
 
         N_epoch = data[0].shape[0]
         x = np.arange(1, N_epoch + 1)
-        #print(data[0])
-        log_data = data
+        print(data[0])
         log_data = data
         for i in range(data[0].shape[1]) :
             for j in range(data[0].shape[0]):
@@ -85,9 +84,9 @@ def comp_error(data_path,model_descrip):
 
                 log_data[1][j,i] = math.log(data[1][j,i])
             #print(i)
-        plt.figure(figsize=(10, 6))
-        plt.plot(log_data[0][:], label='Training Error', color='blue')  # Skip the first entry if it contains the mean
-        plt.plot(log_data[1][:], label='Validation Error', color='red')  # Skip the first entry if it contains the mean
+        plt.figure(figsize=(10, 5))
+        plt.plot(x,log_data[0][:], label='Training Error', color='blue')  # Skip the first entry if it contains the mean
+        plt.plot(x,log_data[1][:], label='Validation Error', color='red')  # Skip the first entry if it contains the mean
         
         plt.title('Training and Validation Error over Epochs')
         plt.xlabel('Epoch')

@@ -13,10 +13,13 @@ def visualize_img_recep(model_path, AutoEncoder, img_side_dim, elec_side_dim,mod
     # Load the state dictionary into the model
     model_loaded.load_state_dict(state_dict)
 
-    fig1, axs1 = plt.subplots(elec_side_dim, elec_side_dim,figsize=(25, 25))
+    fig1, axs1 = plt.subplots(elec_side_dim, elec_side_dim,figsize=(30, 30))
+    fig1.subplots_adjust(wspace=0.5, hspace=0.5)  # Increase these values as needed
+    
     axs1 = axs1.flatten()
     if show_fft:
-        fig2, axs2 = plt.subplots(elec_side_dim, elec_side_dim,figsize=(25, 25))
+        fig2, axs2 = plt.subplots(elec_side_dim, elec_side_dim,figsize=(30, 30))
+        fig2.subplots_adjust(wspace=0.5, hspace=0.5)  # Increase these values as needed
         axs2 = axs2.flatten()
 
     #recep_mem = []
@@ -108,9 +111,11 @@ def visualize_img_recon_recep(model_path, AutoEncoder, neu_side_dim, model_descr
     model_loaded.load_state_dict(state_dict)
 
     fig1, axs1 = plt.subplots(2, 2,figsize=(5, 5))
+    fig1.subplots_adjust(wspace=0.5, hspace=0.5)  # Increase these values as needed
     axs1 = axs1.flatten()
     if show_fft:
         fig2, axs2 = plt.subplots(2, 2,figsize=(5, 5))
+        fig2.subplots_adjust(wspace=0.5, hspace=0.5)  # Increase these values as needed
         axs2 = axs2.flatten()
 
     #recep_mem = []

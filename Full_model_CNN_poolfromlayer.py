@@ -116,21 +116,24 @@ def define_model_CNN_pool(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,
 #         sigmoid2 = self.sigmoid(self.alpha2 * x + self.beta2)
 #         return sigmoid1 + sigmoid2
     
-def train_and_save_CNN_pool(n_epochs,AutoEncoder,model_title,mult_lr = True):
+def train_and_save_CNN_pool(n_epochs,AutoEncoder,model_title,device,mult_lr = True, ):
     from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
     # # Number of epochs
     if mult_lr:
         learning_rates = [0.01, 0.001, 0.0001, 0.00001]
     else:
         learning_rates = [0.0001]
-    train_err = torch.zeros(n_epochs + 1,len(learning_rates))
-    val_err = torch.zeros(n_epochs + 1,len(learning_rates))
+    train_err = torch.zeros(n_epochs + 1,len(learning_rates)).to(device)
+    val_err = torch.zeros(n_epochs + 1,len(learning_rates)).to(device)
     Autoencoders = []
 
+    cifar100_train_tsr_flat = cifar100_train_tsr_flat.to(device)
+    cifar100_test_tsr_flat = cifar100_test_tsr_flat.to(device)
     for i, learning_rate in enumerate(learning_rates):
             # Define Model
         basic_autoencoder = AutoEncoder()
-         
+        basic_autoencoder = basic_autoencoder.to(device)
+        
         # Define a loss function
         criterion = nn.MSELoss()  # mean squared loss, eucledian
 
@@ -144,7 +147,7 @@ def train_and_save_CNN_pool(n_epochs,AutoEncoder,model_title,mult_lr = True):
             for input, _ in train_loader:
                 
                 
-                input = input.view(input.size(0), -1)
+                input = input.to(device).view(input.size(0), -1)
                 # Zero the parameter gradients
                 optimizer.zero_grad()
 
@@ -185,7 +188,7 @@ def train_and_save_CNN_pool(n_epochs,AutoEncoder,model_title,mult_lr = True):
     
     file_path = os.path.join(data_dir, f'NN_{model_title}_output.pkl')
     with open(file_path, 'wb') as f:
-        pickle.dump((train_err, val_err), f)
+        pickle.dump((train_err.cpu(), val_err.cpu()), f)
     
     labels = ['lr = 0.01', 'lr = 0.001', 'lr = 0.0001', 'lr = 0.00001']
     for idx, model in enumerate(Autoencoders):

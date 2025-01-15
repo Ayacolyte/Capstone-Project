@@ -21,20 +21,22 @@ class DoubleSigmoid(nn.Module):
         sigmoid2 = torch.sigmoid(self.magnitude * (x - self.shift))
         return sigmoid1 + sigmoid2
     
-def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,af_array,shift,magnitude,noise):
+def define_model(device,elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,af_array,shift,magnitude,noise):
+    
     import numpy as np
     class AutoEncoder(nn.Module):
         def __init__(self):
+            
             super(AutoEncoder, self).__init__()   
             self.layer1 = nn.Linear(1024, elec_side_dim**2, bias=True)
             self.LNL_model = nn.Linear(elec_side_dim**2, neu_side_dim**2, bias=False)
             self.layer3 = nn.Linear(neu_side_dim**2, 1024, bias=True)
             self.relu = nn.ReLU()
-            self.LNL_model.load_state_dict(torch.load(LNL_model_path))
+            self.LNL_model.load_state_dict(torch.load(LNL_model_path,weights_only=True))
             self.dropout = nn.Dropout(p=drop_rate)
             self.double_sigmoid = DoubleSigmoid(shift, magnitude)
-            self.noise_model1 = noise*torch.tensor(np.random.uniform(-1, 1, self.LNL_model.weight.shape),dtype=torch.float)
-            self.noise_model2 = noise*torch.tensor(np.random.uniform(-1, 1, self.LNL_model.weight.shape),dtype=torch.float)
+            self.noise_model1 = noise*torch.tensor(np.random.uniform(-1, 1, self.LNL_model.weight.shape),dtype=torch.float).to(device)
+            self.noise_model2 = noise*torch.tensor(np.random.uniform(-1, 1, self.LNL_model.weight.shape),dtype=torch.float).to(device)
             
         def forward(self, x):
             def assert_activ(af, x):
@@ -47,26 +49,34 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,af_array,
                 else:
                     x = self.relu(x)
                 return x
-
+            #print(f"x after input is on: {x.device}")
             x = self.layer1(x) 
+            #print(f"x after layer1 is on: {x.device}")
             x = assert_activ(af_array[0], x)
+            #print(f"x after actv1 is on: {x.device}")
             lyr1 = x
             if self.training:
                 noise_weight_LNL = self.LNL_model.weight + self.noise_model1
+                #print(f"noise: {noise_weight_LNL.device}")
                 #print(noise_weight_LNL.shape)
                 #print(self.LNL_model.bias)
                 x = nn.functional.linear(x, noise_weight_LNL, self.LNL_model.bias)
+                #print(f"x after noise1 is on: {x.device}")
             else:
                 noise_weight_LNL = self.LNL_model.weight + self.noise_model2
                 x = nn.functional.linear(x, noise_weight_LNL, self.LNL_model.bias)
             #print(self.LNL_model.weight)
             #x = self.LNL_model(x) 
             x = assert_activ(af_array[1], x)
-            additive_noise = torch.tensor(np.random.uniform(0, 1, x.shape),dtype=torch.float)
+            #print(f"x after actv2 is on: {x.device}")
+            additive_noise = torch.tensor(np.random.uniform(0, 1, x.shape),dtype=torch.float).to(device)
+            
             x = x + 0.25*additive_noise
+            #print(f"x after addnoise is on: {x.device}")
             lyr2 = x
             x = self.dropout(x)  # Apply dropout after hidden layer
             x = self.layer3(x)
+            #print(f"x after layer3 is on: {x.device}")
             x = assert_activ(af_array[2], x)
 
             return x,lyr1, lyr2
@@ -87,7 +97,7 @@ def define_model(elec_side_dim,neu_side_dim, LNL_model_path, drop_rate,af_array,
 #         sigmoid2 = self.sigmoid(self.alpha2 * x + self.beta2)
 #         return sigmoid1 + sigmoid2
     
-def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
+def train_and_save(device,n_epochs,AutoEncoder,model_title,mult_lr = True):
     from Natural_Images import train_loader,cifar100_train_tsr_flat,cifar100_test_tsr_flat
     # # Number of epochs
     if mult_lr:
@@ -98,10 +108,13 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
     val_err = torch.zeros(n_epochs + 1,len(learning_rates))
     Autoencoders = []
 
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Set the device
+
     for i, learning_rate in enumerate(learning_rates):
             # Define Model
-        basic_autoencoder = AutoEncoder()
-         
+        basic_autoencoder = AutoEncoder().to(device)
+        
+
         # Define a loss function
         criterion = nn.MSELoss()  # mean squared loss, eucledian
 
@@ -115,7 +128,8 @@ def train_and_save(n_epochs,AutoEncoder,model_title,mult_lr = True):
             for input, _ in train_loader:
                 
                 # flatten
-                input = input.view(input.size(0), -1)
+                input = input.view(input.size(0), -1).to(device)
+                #print(f'input is on {input.device}')
                 # Zero the parameter gradients
                 optimizer.zero_grad()
 

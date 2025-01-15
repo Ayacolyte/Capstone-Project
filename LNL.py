@@ -133,6 +133,10 @@ def define_save_LNL_model(LNL_model_path,elec_side_dim,neu_side_dim, activ_sprea
         # Set specific weights
         LNL_model.LNL.weight = nn.Parameter(torch.tensor(W_d, dtype=torch.float32))
 
+    cwd = os.getcwd()
+    if not os.path.exists(cwd+'/data'):
+    # Create the folder
+        os.makedirs(cwd+'/data')
     torch.save(LNL_model.LNL.state_dict(), LNL_model_path)
     if __name__ == "__main__":
         test_dot_np = np.zeros((elec_side_dim, elec_side_dim))

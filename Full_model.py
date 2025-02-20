@@ -125,8 +125,8 @@ def train_and_save(device,n_epochs,AutoEncoder,model_title,mult_lr = True):
         ], lr=learning_rate)
         for epoch in range(n_epochs):  # Number of epochs
             basic_autoencoder.train() 
+
             for input, _ in train_loader:
-                
                 # flatten
                 input = input.view(input.size(0), -1).to(device)
                 #print(f'input is on {input.device}')

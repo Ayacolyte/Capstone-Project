@@ -38,7 +38,7 @@ transform = v2.Compose([
 mirrored_transform = v2.Compose([v2.ToTensor(), v2.RandomVerticalFlip(p=1.0), ToGrayScale(),normalise])
 rotation_transform = v2.Compose([v2.ToTensor(),  v2.RandomRotation((90,90)),  ToGrayScale(), normalise])
 
-augment = True
+augment = False
 if augment:
     cifar100_train_og = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=transform)
     cifar100_train_mir = datasets.CIFAR100(root=cwd+'/data', train=True, download=True,transform=mirrored_transform)
